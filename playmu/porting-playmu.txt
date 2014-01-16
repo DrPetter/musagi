@@ -1,0 +1,32 @@
+This is the playback-only source, with GUI code stripped out. I use it for games, and it has extra code added for sample playback (since I don't want to submit myself to the potential horrors of combining several audio libraries).
+
+The pa subfolder is portaudio, which I usually include with the musagi code for convenience. You might be able to use it as-is for building the thing on windows, or you could grab the latest version of the library for whichever platform you fancy.
+
+Anyhoo... basic code overview:
+
+---
+
+test.cpp - minimal test app using the library
+playmu.cpp - the main set of functions that are exposed to the user application, plus some internal global functions.
+playmu_sound.h - sample playback (you can skip this completely since flash has its own stuff for that)
+
+pa_callback.h - stream callback function, keeps timing, grabs note triggers, sends them over to instruments, tells instruments to render, mixes the resulting stream chunks
+
+part.h - what you see in a part window, i.e. a list of note triggers - these are kept in a global array, for some reason
+song.h - class containing and interfacing with the actual song, which is mainly "sparts" (a reference to a part, placed somewhere in the global timeline)
+
+gear_instrument.h - parent class of instruments
+gin_*.h - instrument implementations
+
+gear_effect.h - parent class of "effects" (of which I intended to have more than one)
+gef_gapan.h - currently the only effect present, and it's attached to every instrument created (the little window beneath, with volume/pan/filter/reverb etc)
+
+main_fileops.h - load song from file
+musagig.h - various global stuff (like some wrappers for fread/fwrite that are used to map memory locations to file offsets)
+
+---
+
+There's a bunch of stuff that you might be able to ignore, at least initially. fftsg.cpp is open-source FFT code I grabbed from somewhere, and I'm pretty sure it's only used for the vocoder instrument (which nobody really uses).
+Whenever you see reference to "knobrec" or similar, it's for recording and playing back live knob adjustments, like filter sweeps etc. It took quite a bit of somewhat nasty and/or clever code to make it all work, and it could possibly complicate the porting process for a feature that again almost nobody uses.
+
+I would suggest that you start off with porting gear_instrument and gin_swave or another instrument, then test it by manually calling its trigger function and rendering the audio stream it produces (look at pa_callback to see how it's supposed to be done). swave has a default "blop" sound for one of its samples, which can be triggered using note id 0. Then see if you can make it load the instrument/preset/data from a byte stream/file. If that works properly (look at main_fileops/LoadInstrument, try it with some drum instruments from the official musagi release), then there shouldn't be any major hurdles to porting the whole source.

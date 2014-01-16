@@ -1,0 +1,101 @@
+
+-- musagiport.zip - downloaded from drpetter.se (probably)
+
+
+Note that this is an old file intended for previous porting attempts. Most of it is probably still valid, but I'm not rewriting any of it right now. There was another effort to port the playback library (playmu) recently, and I wrote some information for that. It's pasted at the end of this file. The playmu source is also included in a subfolder. It should be largely identical to the musagi source, with GUI code stripped out and some sound effect playback code added.
+
+Also included is a tarball of the previous linux porting effort, as far as I can tell. It might be helpful?
+
+
+Contact me at drpetter@gmail.com if you have questions, but please don't expect me to manage the software project by keeping files up to date. Someone should set up an online repository for this.
+
+
+
+---- Musagi portability project ----
+
+   May 1, 2007
+
+
+External libs/systems required: Portaudio, OpenGL, mouse/keyboard input, window handling, file requester, (timer), (midi)
+
+
+Let's assume glfw will be suitable as a basic system library. The first goal would be to have a portable version of musagi with working mouse and keyjazz input as well as graphics and audio output. No need to worry about window resizing at first, nor character input for string editing etc.
+Second goal would be to add char input and a file requester to get pretty much the full functionality of the application. After that we get to the little things like window resize, midi input, timer, audio latency improvement and so on.
+
+The first goal mentioned above should be readily achievable using glfw without any major headaches, since glfw provides window setup and input code for mouse and keyboard. Getting full character input might be tough, but the few keys used by keyjazz should be easy to implement (look in main.cpp for the calls and rewrite the constants from e.g. DIK_A to 'A' for use in glfwGetKey()).
+
+
+File-specific notes
+-------------------
+In order of importance, roughly. By far the most work is in rewriting glkit.h to use glfw instead of Windows code. The rest should be a breeze, relatively speaking (at least the most critical parts, not counting file selector and midi).
+Some files might have scope issues with for(int i...) and expecting the variable to be accessible outside the loop/block - that should yield a compiler error though and would be very easy to fix. Other similar issues like missing trivial #defines are also to be expected.
+
+File                - Description
+----                  -----------
+
+glkit.h             - Based on NeHe's OpenGL code iirc, very Windows-specific of course
+TODO: Replace with glfw setup, not sure how to handle window resizing etc, but mouse events should be pretty easy to relay in the same way they work now (well, they might not be read in the same way, but the appropriate variables should be filled with the same info - i.e. coordinates, button press/release and mouse wheel state).
+Basically the functions and the struct defined in glkit_global.h must work the same way they do now, as that's what the application will interface. On top of that are the global variables prefixed with glkit_ and defined at the top of glkit.h, which are used to get information on what happens to the application window.
+Best approach is probably to keep the old file for reference but start fresh with a simple glfw window setup and work from there, adding the stuff needed to handle the variables and functions mentioned above.
+
+DPInput.h/.cpp      - I removed all Windows-specific code, empty shell remains
+TODO: Insert keyboard code. This would basically just be a call to glfwGetKey() in DPInput.KeyPressed() I suppose.
+
+dui.h               - Interface class, handles the IMGUI stuff and interface rendering, as well as relaying input
+TODO: Uses DPInput directly, which means some DIK_ constants that might need translating, nothing big.
+
+part.cpp            - MessageBox():es
+TODO: Just replace the MessageBox calls with something appropriate. One sensible approach is to add messagebox display to the dui class and handle them internally using OpenGL. That's probably the way to go (and therefore my responsibility).
+
+main.cpp            - Lots of "system"/random code and high-level interface calls
+TODO: Shouldn't need tweaking other than DIK_ contants and MessageBox():es, and a Sleep().
+
+fileselector.h/.cpp - Popup windows for saving and loading files, Pretty critical for real functionality.
+TODO: Rewrite, there's probably some library for it. An alternative would be to write a custom one using OpenGL (again) together with some portable way of iterating through the file system. Relatively heavy work in that case.
+
+timer.h             - High-resolution timer for cpu usage meter. Not critical but nice to have.
+TODO: Rewrite, should be fairly easy.
+
+midi_io.h           - What the file name says. Non-critical.
+TODO: Rewrite when the critical stuff is done.
+
+
+--------
+
+Notes on porting playmu, also valid for musagi as a whole
+
+--------
+
+
+This is the playback-only source, with GUI code stripped out. I use it for games, and it has extra code added for sample playback (since I don't want to submit myself to the potential horrors of combining several audio libraries).
+
+The pa subfolder is portaudio, which I usually include with the musagi code for convenience. You might be able to use it as-is for building the thing on windows, or you could grab the latest version of the library for whichever platform you fancy.
+
+Anyhoo... basic code overview:
+
+---
+
+test.cpp - minimal test app using the library
+playmu.cpp - the main set of functions that are exposed to the user application, plus some internal global functions.
+playmu_sound.h - sample playback (you can skip this completely since flash has its own stuff for that)
+
+pa_callback.h - stream callback function, keeps timing, grabs note triggers, sends them over to instruments, tells instruments to render, mixes the resulting stream chunks
+
+part.h - what you see in a part window, i.e. a list of note triggers - these are kept in a global array, for some reason
+song.h - class containing and interfacing with the actual song, which is mainly "sparts" (a reference to a part, placed somewhere in the global timeline)
+
+gear_instrument.h - parent class of instruments
+gin_*.h - instrument implementations
+
+gear_effect.h - parent class of "effects" (of which I intended to have more than one)
+gef_gapan.h - currently the only effect present, and it's attached to every instrument created (the little window beneath, with volume/pan/filter/reverb etc)
+
+main_fileops.h - load song from file
+musagig.h - various global stuff (like some wrappers for fread/fwrite that are used to map memory locations to file offsets)
+
+---
+
+There's a bunch of stuff that you might be able to ignore, at least initially. fftsg.cpp is open-source FFT code I grabbed from somewhere, and I'm pretty sure it's only used for the vocoder instrument (which nobody really uses).
+Whenever you see reference to "knobrec" or similar, it's for recording and playing back live knob adjustments, like filter sweeps etc. It took quite a bit of somewhat nasty and/or clever code to make it all work, and it could possibly complicate the porting process for a feature that again almost nobody uses.
+
+I would suggest that you start off with porting gear_instrument and gin_swave or another instrument, then test it by manually calling its trigger function and rendering the audio stream it produces (look at pa_callback to see how it's supposed to be done). swave has a default "blop" sound for one of its samples, which can be triggered using note id 0. Then see if you can make it load the instrument/preset/data from a byte stream/file. If that works properly (look at main_fileops/LoadInstrument, try it with some drum instruments from the official musagi release), then there shouldn't be any major hurdles to porting the whole source.
