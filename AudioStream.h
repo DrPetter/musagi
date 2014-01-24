@@ -4,13 +4,15 @@
 class AudioStream;
 
 #include <stdio.h>
-#include "pa/portaudio.h"
+#include "portaudio.h"
 #include "timer.h"
 #include "musagi.h"
 #include "part.h"
 #include "song.h"
 
+#ifdef VST_PLUGIN_SDK
 #include "pluginterfaces/vst2.x/aeffectx.h"
+#endif
 
 //static int pa_callback(void*, void*, unsigned long, PaTimestamp, void*);
 //int pa_callback(void*, void*, unsigned long, PaTimestamp, void*);
@@ -29,27 +31,27 @@ public:
 
 	StereoBufferP buffer;
 	StereoBufferP in_buffer;
-	
+
 	GearStack **gearstacks;
 	int num_gearstacks;
 	GearStack **newlist;
-	
+
 	PPart *parts;
 	int numparts;
-	
+
 	Song *song;
 
 	unsigned int globaltick;
 	unsigned int songtick; // globaltick but reset on play
 
-	bool metronome_on;	
+	bool metronome_on;
 	float metronome_vol;
 	int metronome;
 	int metrocount;
 	int blipcount;
 	float blipvol;
 	float blipangle;
-	
+
 	float master_volume;
 	float speaker_volume;
 
@@ -62,21 +64,23 @@ public:
 	int foutstream_datasize;
 	bool record_song;
 
-	// for performance measurement		
+	// for performance measurement
 	CTimer *perftimer;
 	float dtime;
 	int dtime_num;
 	float cpu_usage;
-	
+
 	float peak_left;
 	float peak_right;
 	int clip_left;
 	int clip_right;
-	
+
 	bool has_input_stream;
 
+	#ifdef VST_PLUGIN_SDK
 	VstTimeInfo vst_timeinfo;
-	
+	#endif
+
 //public:
 	AudioStream()
 	{
@@ -86,7 +90,7 @@ public:
 		dtime=0;
 		dtime_num=0;
 		cpu_usage=0.0f;
-		
+
 		globaltick=0;
 		songtick=0;
 
@@ -94,9 +98,9 @@ public:
 		blipcount=0;
 		metronome_on=true;
 		metronome_vol=0.5f;
-		
+
 		midi_mode=false;
-	
+
 		buffer.left=NULL;
 		buffer.right=NULL;
 		buffer.size=0;
@@ -104,22 +108,22 @@ public:
 		in_buffer.left=NULL;
 		in_buffer.right=NULL;
 		in_buffer.size=0;
-		
+
 		peak_left=0.0f;
 		peak_right=0.0f;
 		clip_left=false;
 		clip_right=false;
-		
+
 		master_volume=0.25f;
 		speaker_volume=0.25f;
-		
+
 		gearstacks=(GearStack**)malloc(512*sizeof(GearStack*));
 		num_gearstacks=0;
 //		newlist=NULL;
 		newlist=(GearStack**)malloc(512*sizeof(GearStack*));
-		
+
 		song=NULL;
-		
+
 		parts=(PPart*)malloc(1024*sizeof(PPart));
 		numparts=0;
 
@@ -158,10 +162,10 @@ public:
 	    Pa_Terminate();
 
 		delete perftimer;
-		
+
 		free(buffer.left);
 		free(buffer.right);
-		
+
 		free(gearstacks);
 		free(newlist);
 		free(parts);
@@ -174,10 +178,13 @@ public:
 
 		double cursample=(double)GetTick(1)*8.0;
 		double playsample=(double)GetTick(2)*8.0;
+		int samples_per_beat=32*320*GetTempo()/1600;
+		double sample_to_subframe=30.0*80.0/44100.0;
+
+		#ifdef VST_PLUGIN_SDK
 		vst_timeinfo.samplePos=cursample; // ok
 		vst_timeinfo.sampleRate=44100.0;
 		vst_timeinfo.nanoSeconds=cursample*(1000000.0/44.1); // ok
-		int samples_per_beat=32*320*GetTempo()/1600;
 		vst_timeinfo.ppqPos=playsample/(double)samples_per_beat; // ok
 		vst_timeinfo.tempo=(double)UpdateTempo(); // ok
 		vst_timeinfo.barStartPos=floor(vst_timeinfo.ppqPos); // ok
@@ -185,12 +192,11 @@ public:
 		vst_timeinfo.cycleEndPos=1000000.0*16.0; // ? (what is cycle?)
 		vst_timeinfo.timeSigNumerator=GetBeatLength(); // ok
 		vst_timeinfo.timeSigDenominator=4; // ok
-		double sample_to_subframe=30.0*80.0/44100.0;
 		vst_timeinfo.smpteOffset=(int)(playsample*sample_to_subframe); // ok
 		vst_timeinfo.smpteFrameRate=30; // constant 30 fps (arbitrary)
 		vst_timeinfo.samplesToNextClock=(int)(cursample-(double)vst_timeinfo.smpteOffset/sample_to_subframe); // ok
 		vst_timeinfo.flags=0;
-		
+
 		vst_timeinfo.flags|=kVstNanosValid;
 		vst_timeinfo.flags|=kVstPpqPosValid;
 		vst_timeinfo.flags|=kVstTempoValid;
@@ -198,6 +204,7 @@ public:
 		vst_timeinfo.flags|=kVstTimeSigValid;
 		vst_timeinfo.flags|=kVstSmpteValid;
 		vst_timeinfo.flags|=kVstClockValid;
+		#endif
 		// TODO: add info about play state etc
 //		vst_timeinfo.flags|=;
 //		vst_timeinfo.flags|=;
@@ -224,10 +231,12 @@ enum VstTimeInfoFlags
 */
 	};
 
+	#ifdef VST_PLUGIN_SDK
 	VstTimeInfo* GetVstTimeInfo()
 	{
 		return &vst_timeinfo;
 	};
+	#endif
 
 	unsigned int GetTick(int mode)
 	{
@@ -244,7 +253,7 @@ enum VstTimeInfoFlags
 			return globaltick*8; // will break after about 24 hours
 		}
 	};
-	
+
 	bool StartStream(int buffersize, int (*pa_callback)(void*, void*, unsigned long, PaTimestamp, void*))
 	{
 		LogPrint("AudioStream: start stream");
@@ -265,7 +274,7 @@ enum VstTimeInfoFlags
 			in_buffer.left=(float*)malloc(in_buffer.size*sizeof(float));
 			in_buffer.right=(float*)malloc(in_buffer.size*sizeof(float));
 		}
-		
+
 		int pa_error=paNoError;
 		has_input_stream=true;
 		pa_error=Pa_OpenDefaultStream(
@@ -304,10 +313,10 @@ enum VstTimeInfoFlags
 				LogPrint("*** portaudio error, in Pa_StartStream: %s", Pa_GetErrorText(pa_error));
 		}
 
-	    
+
 	    return true;
 	};
-	
+
 	bool StopStream()
 	{
 		if(stream==NULL)
@@ -316,7 +325,7 @@ enum VstTimeInfoFlags
 	    Pa_StopStream(stream);
 	    Pa_CloseStream(stream);
 	    stream=NULL;
-	    
+
 	    if(buffer.size>0)
 	    {
 			free(buffer.left);
@@ -334,7 +343,7 @@ enum VstTimeInfoFlags
 	{
 		Sleep(1);
 	};
-*/	
+*/
 	void StartFileOutput(char *filename, bool srec)
 	{
 		foutput=fopen(filename, "wb");
@@ -346,7 +355,7 @@ enum VstTimeInfoFlags
 		dword=0;
 		fwrite(&dword, 1, 4, foutput); // remaining file size
 		fwrite("WAVE", 4, 1, foutput); // "WAVE"
-	
+
 		fwrite("fmt ", 4, 1, foutput); // "fmt "
 		dword=16;
 		fwrite(&dword, 1, 4, foutput); // chunk size
@@ -362,19 +371,19 @@ enum VstTimeInfoFlags
 		fwrite(&word, 1, 2, foutput); // block align
 		word=16;
 		fwrite(&word, 1, 2, foutput); // bits per sample
-	
+
 		fwrite("data", 4, 1, foutput); // "data"
 		dword=0;
 		foutstream_datasize=ftell(foutput);
 		fwrite(&dword, 1, 4, foutput); // chunk size
-	
-		// sample data	
+
+		// sample data
 
 		file_stereosampleswritten=0;
 		file_output=true;
 		record_song=srec;
 	};
-	
+
 	void StopFileOutput()
 	{
 		if(file_output)
@@ -395,7 +404,7 @@ enum VstTimeInfoFlags
 			fclose(foutput);
 		}
 	};
-	
+
 	void AddGearStack(GearStack *new_stack)
 	{
 		LogPrint("AudioStream: add gearstack, instrument [%.8X]", new_stack->instrument);
@@ -440,7 +449,7 @@ enum VstTimeInfoFlags
 				LogPrint("AudioStream: %i: %.8X", i, gearstacks[i]);
 		}
 	};
-*/	
+*/
 	void ResetClipMarkers()
 	{
 		clip_left=0;
@@ -450,7 +459,7 @@ enum VstTimeInfoFlags
 	void AddPart(Part *part)
 	{
 		RemovePart(part); // in case it's already in... ?
-		
+
 		numparts++;
 		parts[numparts-1].part=part;
 		parts[numparts-1].start=globaltick;
@@ -487,7 +496,7 @@ enum VstTimeInfoFlags
 		RemoveAllParts();
 		num_gearstacks=0;
 	};
-	
+
 	void SetSong(Song *s)
 	{
 		song=s;

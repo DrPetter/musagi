@@ -77,10 +77,12 @@ gear_instrument* InChildWindow()
 
 AudioStream *audiostream;
 
+#ifdef VST_PLUGIN_SDK
 VstTimeInfo* GetVstTimeInfo()
 {
 	return audiostream->GetVstTimeInfo();
 }
+#endif
 
 #include "gin_protobass.h"
 #include "gin_xnes.h"
@@ -89,7 +91,11 @@ VstTimeInfo* GetVstTimeInfo()
 #include "gin_vsmp.h"
 #include "gin_midinst.h"
 #include "gin_midperc.h"
+
+#ifdef VST_PLUGIN_SDK
 #include "gin_vsti.h"
+#endif
+
 #include "gin_operator.h"
 #include "gin_wavein.h"
 
@@ -221,7 +227,7 @@ void Keyboard_KeyDown(int note)
 	SetKeyDown(note, true);
 
 	numkeysdown++;
-	
+
 //	midi_noteon(0, note, 127);
 }
 
@@ -244,7 +250,7 @@ void Keyboard_KeyUp(int note)
 
 	numkeysdown--;
 	if(numkeysdown<0) numkeysdown=0;
-	
+
 //	midi_noteoff(0, note, 127);
 }
 
@@ -301,12 +307,12 @@ void midiplay_tick(int ticksize)
 		int curtime=part->playtime;
 		Trigger *trig=part->GetTrigger(curtime);
 		while(trig!=NULL) // consume all due triggers
-		{				
+		{
 			instr->Trigger(trig->note, trig->volume, trig->duration, trig->slidenote, trig->slidelength);
 
 			if(part->Ended())
 				as->parts[i].expired=true;
-			
+
 			trig=part->GetTrigger(curtime);
 		}
 	}
@@ -348,7 +354,7 @@ void midiplay_routine()
 	DWORD ms_cur=0;
 	int cursample=0;
 	int moderecheck=0;
-	
+
 	for(;;)
 	{
 		int nextsample=0;
@@ -418,7 +424,7 @@ void glkRenderFrame(bool disabled)
 	if(firstrender) LogPrint("render: begin");
 
 	bool shortkey=false;
-	
+
 	if(!progressdone) // render progress bar to indicate load progress
 	{
 		int px=(int)((float)progress/progressmax*(1024-40));
@@ -495,12 +501,12 @@ void glkRenderFrame(bool disabled)
 			else
 				dui->DrawLED(95+i*7, 25, 0, i<level);
 		}
-	
+
 		dui->DrawText(168, 15, dui->palette[6], "left");
 		dui->DrawText(168, 26, dui->palette[6], "right");
 
 		dui->DrawBar(100, 48, 80, 1, dui->palette[7]);
-	
+
 		dui->DrawText(121-10, 39, dui->palette[6], "master");
 		dui->DoKnob(95, 40, master_volume, -1, "knob_mvol", "master volume (adjust to avoid clipping)");
 		audiostream->master_volume=pow(master_volume, 2.0f)*0.5f;
@@ -549,7 +555,7 @@ void glkRenderFrame(bool disabled)
 	if(bpm<100) tx=7;
 	dui->DrawText(cpu_tempo_xpos+201+tx, 31, dui->palette[6], "%2i bpm", (int)bpm);
 
-	// play button	
+	// play button
 	dui->DrawText(38, 9, dui->palette[6], "play");
 	dui->DrawLED(5, 8, 0, thesong->playing);
 	bool quickplay=false;
@@ -692,7 +698,7 @@ void glkRenderFrame(bool disabled)
 	// --- preferences ---
 	dui->DrawBar(glkitGetWidth()-200, glkitGetHeight()-60, 1, 60, dui->palette[6]);
 	dui->DrawTexturedBar(glkitGetWidth()-199, glkitGetHeight()-58, 198, 58, dui->palette[10], dui->brushed_metal, NULL);
-	
+
 	dui->DrawText(glkitGetWidth()-200+35, glkitGetHeight()-53, dui->palette[6], "metronome");
 	dui->DrawLED(glkitGetWidth()-200+5, glkitGetHeight()-54, 0, audiostream->metronome_on);
 	dui->DoKnob(glkitGetWidth()-200+15, glkitGetHeight()-58, audiostream->metronome_vol, -1, "knob_metvol", "metronome volume (0=off)");
@@ -1028,7 +1034,7 @@ void glkRenderFrame(bool disabled)
 		}
 	}
 
-	// rename instrument	
+	// rename instrument
 	if(dui->CheckRCResult(30))
 		dui->EditString(gearstacks[dui->rcresult_param].instrument->Name());
 
@@ -1079,12 +1085,12 @@ void glkRenderFrame(bool disabled)
 		}
 		int imx=(int)(rmx+2+thesong->iscrollx)/4*160*16;
 		int imy=(int)(rmy-60+thesong->iscrolly);
-		
+
 		for(int i=0;i<maxparts;i++)
 			if(mungoparts[i]==NULL)
 				break;
 
-		char* sid=NULL;				
+		char* sid=NULL;
 		if(!multiple_selected && (dui->ctrl_down || thesong->ghostpart_mode==2) && thesong->GetSelectedPart()!=NULL) // create clone of selected part
 			sid=thesong->InsertPart(thesong->GetSelectedPart(), imx, imy/10);
 		else if(!multiple_selected && (dui->shift_down || thesong->ghostpart_mode==1) && thesong->GetSelectedPart()!=NULL) // create copy of selected part
@@ -1358,7 +1364,7 @@ void glkRenderFrame(bool disabled)
 		shortkey=true;
 	}
 
-	static part_play_key=false;
+	static bool part_play_key=false;
 	if(input->KeyPressed(DIK_SPACE)) // space to play part, conflicts with space to scroll/pan
 	{
 		if(!shortkeydown)
@@ -1460,9 +1466,11 @@ void glkRenderFrame(bool disabled)
 					gearstacks[i].instrument=new gin_midperc();
 					has_gapan=false;
 					break;
+				#ifdef VST_PLUGIN_SDK
 				case 7: // VSTi
 					gearstacks[i].instrument=new gin_vsti();
 					break;
+				#endif
 				case 8: // operator
 					gearstacks[i].instrument=new gin_operator();
 					break;
@@ -1653,7 +1661,7 @@ void Reset()
 	gearstacks[0].winy=95;
 	ToggleStackWindow(0);
 	gearstacks[0].winpop=false;
-	
+
 	for(int i=0;i<maxparts;i++)
 		mungoparts[i]=NULL;
 
@@ -1664,7 +1672,7 @@ void Reset()
 	thesong->scrollfollow=scrollfollow;
 
 	// create a part
-	int pi=0;	
+	int pi=0;
 	mungoparts[pi]=new Part(thesong->GenGuid());
 	mungoparts[pi]->SetGearStack(&gearstacks[fcurstack], fcurstack);
 	mungoparts[pi]->winx=55;
@@ -1673,7 +1681,7 @@ void Reset()
 	thesong->SelectPart(sid);
 	mungoparts[pi]->Popup();
 	current_part=mungoparts[pi];
-	
+
 	curfilename[0]='\0';
 
 	ftempo=0.5f;
@@ -1703,7 +1711,7 @@ void glkInit(char* cmd)
 	int gtime=timeGetTime();
 
 	SetMusagiDir(defpath);
-                 
+
 	LogPrint("main: default directory==\"%s\"", defpath);
 	LogPrint("--- init start");
 	ProgressBar();
@@ -1729,7 +1737,7 @@ void glkInit(char* cmd)
 		kbkbkeydown[i]=false;
 	kbkbsomething=false;
 	kbkboctave=2;
-	
+
 	midioctave=1;
 
 	LogPrint("InitGlobals()");
@@ -1744,9 +1752,9 @@ void glkInit(char* cmd)
 
 	LogPrint("Reset()");
 	Reset();
-	
+
 	ProgressBar();
-	
+
 	LogPrint("init dui");
 	dui=new DUI();
 	dui->glkmouse=&glkmouse;
@@ -1820,7 +1828,7 @@ void glkInit(char* cmd)
 
 	progressdone=true;
 	LogPrint("progress=%i", progress);
-	
+
 	if(cmd[0]!='\0') // load song given on command line, if any
 	{
 		if(cmd[0]=='\"')
