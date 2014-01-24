@@ -21,7 +21,7 @@ HINSTANCE	hInstanceMain;
 /*
 // vsync stuff
 typedef BOOL	(APIENTRY * PFNWGLSWAPINTERVALEXT)(int interval);
-typedef int		(APIENTRY * PFNWGLGETSWAPINTERVALEXT)(); 
+typedef int		(APIENTRY * PFNWGLGETSWAPINTERVALEXT)();
 PFNWGLSWAPINTERVALEXT		wglSwapIntervalEXT = NULL;
 PFNWGLGETSWAPINTERVALEXT	wglGetSwapIntervalEXT = NULL;
 #define LOAD_EXTENSION(name) *((void**)&name) = wglGetProcAddress(#name)
@@ -118,27 +118,27 @@ void glkitInternalRender(bool disabled) // disabled==true means no input should 
 {
 	glDisable(GL_SCISSOR_TEST);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);				
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
-	
+
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
 	glkRenderFrame(disabled);
-	
+
 	if(abort_render)
 	{
 		LogPrint("abort_render in glkit");
 		abort_render=false;
 		return;
 	}
-	
+
 	glDisable(GL_BLEND);
 	glFlush();
 
 	SwapBuffers(hDC);
 }
 
-GLvoid ReSizeGLScene(GLsizei width, GLsizei height)
+void ReSizeGLScene(GLsizei width, GLsizei height)
 {
 	if(height==0) height=1;
 
@@ -157,7 +157,7 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height)
 	glLoadIdentity();
 }
 
-int InitGL(GLvoid)
+int InitGL(void)
 {
 	glEnable(GL_TEXTURE_2D);
 	glShadeModel(GL_SMOOTH);
@@ -168,7 +168,7 @@ int InitGL(GLvoid)
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 	glDisable(GL_CULL_FACE);
-	
+
 /*	LOAD_EXTENSION(wglSwapIntervalEXT);
 	LOAD_EXTENSION(wglGetSwapIntervalEXT);
 	if( wglSwapIntervalEXT==NULL ||
@@ -182,7 +182,7 @@ int InitGL(GLvoid)
 	return TRUE;
 }
 
-GLvoid KillGLWindow(GLvoid)
+void KillGLWindow(void)
 {
 /*	if(glkit_fullscreen)
 	{
@@ -315,14 +315,14 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 		0,											// Shift Bit Ignored
 		0,											// No Accumulation Buffer
 		0, 0, 0, 0,									// Accumulation Bits Ignored
-		16,											// 16Bit Z-Buffer (Depth Buffer)  
+		16,											// 16Bit Z-Buffer (Depth Buffer)
 		0,											// No Stencil Buffer
 		0,											// No Auxiliary Buffer
 		PFD_MAIN_PLANE,								// Main Drawing Layer
 		0,											// Reserved
 		0, 0, 0										// Layer Masks Ignored
 	};
-	
+
 	LogPrint("CreateGLWindow: dc stuff");
 
 	hDC=GetDC(hWndMain);
@@ -395,7 +395,7 @@ LRESULT CALLBACK WndProc(	HWND	hWnd,			// Handle For This Window
 			glkitInternalRender(true); // trigger redraws when there's a file requester open holding up the message queue... uhm
 		}
 		break; // default handling
-	
+
 	case WM_TIMER:
 		GetClientRect(hWndMain, &rect);
 		InvalidateRect(hWnd, &rect, FALSE);
@@ -537,7 +537,7 @@ int WINAPI WinMain(	HINSTANCE	hInstance,
 	MSG msg;
 
 	cursor_arrow=LoadCursor(NULL, IDC_ARROW);
-	
+
 	glkkey=0;
 
 	glkit_width=950;
@@ -548,7 +548,7 @@ int WINAPI WinMain(	HINSTANCE	hInstance,
 	glkit_refresh=75;
 	glkit_fullscreen=false;
 	glkit_fullwindow=false;
-	
+
 	glkmouse.glk_mousex=0;
 	glkmouse.glk_mousey=0;
 	glkmouse.glk_cmx=0;
@@ -666,7 +666,7 @@ int WINAPI WinMain(	HINSTANCE	hInstance,
 			glkitInternalRender(false);
 			paint_requests=0;
 		}
-		
+
 		if(glkmouse.glk_mouseleftclick==1) glkmouse.glk_mouseleft=false;
 		if(glkmouse.glk_mouserightclick==1) glkmouse.glk_mouseright=false;
 		if(glkmouse.glk_mousemiddleclick==1) glkmouse.glk_mousemiddle=false;
@@ -676,11 +676,11 @@ int WINAPI WinMain(	HINSTANCE	hInstance,
 	}
 
 	LogPrint("leave message loop ------------ USAGE END");
-	
+
 	KillTimer(hWndMain, timerid);
 
 	glkit_winmax=IsZoomed(hWndMain);
-	
+
 	glkFree();
 
 	KillGLWindow();
