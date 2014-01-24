@@ -38,7 +38,7 @@ public:
 	char current_window[64]; // preserved between frames
 	char namestring[16]; // for namespaces (to avoid conflict between instances of the same class)
 	char curname[64];
-	
+
 	int mouseregion;
 	bool lmbdown, lmbclick, lmbrelease, dlmbclick;
 	bool rmbdown, rmbclick, rmbrelease;
@@ -52,10 +52,10 @@ public:
 	int anchorx, anchory;
 	float anchorfx, anchorfy;
 	int anchorix, anchoriy;
-	
+
 	int tmousex, tmousey;
 	bool tlmbclick, trmbclick, tmmbclick;
-	
+
 	bool key_a, key_c, key_v;
 	bool shift_down;
 	bool ctrl_down;
@@ -77,14 +77,14 @@ public:
 	int mf_settled;
 	dui_MouseState realmouse[2];
 	int mouseprivilege;
-	
+
 	char *estring;
 	char eoldstring[128];
 	bool editstring;
 
 	int gui_winx;
 	int gui_winy;
-	
+
 	dui_State state; // state for current component
 	dui_State mstate; // state for current menu
 
@@ -120,7 +120,7 @@ public:
 	char popup_text[128];
 
 	Color palette[32];
-	
+
 	Texture font;
 	Texture knobe[4];
 	Texture knobtop;
@@ -141,23 +141,23 @@ public:
 	Texture logo;
 	Texture vgradient;
 	Texture icon_resize;
-	
+
 	int num_skins;
 	char skin_names[64][128];
 
 	int num_midiin;
 	char midiin_names[64][64];
-	
+
 	int font_width[110];
 	int font_offset[110];
-	
+
 	glkit_mouse *glkmouse;
 
 	DUI()
 	{
 		active_element[0]='\0';
 		active_window[0]='\0';
-		
+
 		mousewindow[0]='\0';
 		mf_settled=2;
 		ClearMouse();
@@ -167,7 +167,7 @@ public:
 		part_is=false;
 		editstring=false;
 		dlmb_counter=0;
-		
+
 		rcmenu=false;
 		rcresult=-1;
 		tlmbclick=false;
@@ -203,11 +203,11 @@ public:
 			joyclick[i]=false;
 		}
 	};
-	
+
 	~DUI()
 	{
 	};
-	
+
 	char* mstrcat(char* temp, char* str1, char* str2)
 	{
 		strcpy(temp, str1);
@@ -303,7 +303,7 @@ public:
 		return true;
 	}
 
-	// append namespace name to a string	
+	// append namespace name to a string
 	void SpaceName()
 	{
 		int last=strlen(curname);
@@ -326,7 +326,7 @@ public:
 		realmouse[i].mmbclick=mmbclick;
 		realmouse[i].dlmbclick=dlmbclick;
 	};
-	
+
 	void LoadMouse(int i)
 	{
 		lmbdown=realmouse[i].lmbdown;
@@ -361,7 +361,7 @@ public:
 			return true;
 		return false;
 	};
-	
+
 	void Update(DPInput *input)
 	{
 		LoadMouse(0);
@@ -553,7 +553,7 @@ public:
 		}
 		return false;
 	};
-	
+
 	float* DoOverlay(int& choice) // returns right-click menu choice, if any.... uh, that's ugly :P
 	{
 		rcresult=-1;
@@ -632,7 +632,7 @@ public:
 		rcresult_mousex=mousex;
 		rcresult_mousey=mousey;
 	};
-	
+
 	void CloseMenu()
 	{
 		if(rcmenu)
@@ -727,12 +727,12 @@ public:
 		}
 		else
 			return NULL;
-		
+
 		if(rcmenu_y+numitems*10+3>glkitGetHeight())
 			rcmenu_y=glkitGetHeight()-numitems*10-3;
 		if(rcmenu_x+width>glkitGetWidth())
 			rcmenu_x=glkitGetWidth()-width;
-		
+
 		for(int i=0;i<numitems;i++)
 		{
 			bool cur=MouseInZone(rcmenu_x, rcmenu_y+i*10, width, 10);
@@ -844,19 +844,19 @@ public:
 			ClearMouse();
 		}
 	};
-	
+
 	void DeselectWindow()
 	{
 		active_window[0]='\0';
 	};
-	
+
 	bool NoActiveWindow()
 	{
 		if(active_window[0]=='\0')
 			return true;
 		return false;
 	};
-	
+
 	void NameSpace(void *identifier)
 	{
 		if(identifier==NULL)
@@ -876,7 +876,7 @@ public:
 		state.mdx=mousedx;
 		state.mdy=mousedy;
 		state.clicked=false;
-		
+
 		bool activated=false; // To save a string comparison
 		if(strcmp(idstr, active_element)!=0) // Inactive
 		{
@@ -929,7 +929,7 @@ public:
 					value-=dragdelta;
 				if(value<0.0f) value=0.0f;
 				if(value>1.0f) value=1.0f;
-				
+
 				// dragging part icon (where applicable)
 				if(part_is && !space_down) // ignore if space-scrolling
 				{
@@ -947,7 +947,7 @@ public:
 						part_mox=part_mox%4;
 					if(part_mox<=-4)
 						part_mox=-((-part_mox)%4);
-					
+
 					part_move=true;
 				}
 			}
@@ -1035,7 +1035,7 @@ public:
 			part_start=&start;
 			part_ypos=&ypos;
 			part_zoom=zoom;
-	
+
 			part_is=true;
 			float dummy;
 			active=DoButtonLogic(x, y, w, 10, dummy, idstr);
@@ -1128,10 +1128,10 @@ public:
 		strcpy(curname, idstr);
 		SpaceName();
 		idstr=curname;
-		
+
 		glLoadIdentity();
 		glTranslatef(0.0f, 0.0f, 0.0f);
-		
+
 		LoadMouse(0);
 		bool mactivate=(!dlmbclick && (lmbclick||rmbclick||mmbclick) && MouseInZone(x, y, w, 12));
 		if(mactivate)
@@ -1207,7 +1207,7 @@ public:
 
 		if(moved)
 			x+=mousedx;
-		
+
 		return active;
 	};
 	void StartFlatWindow(int x, int y, int w, int h, char *idstr)
@@ -1218,7 +1218,7 @@ public:
 
 		glLoadIdentity();
 		glTranslatef(0.0f, 0.0f, 0.0f);
-		
+
 		EnterWindow(current_window, x, y, 0, 0, w, h);
 	};
 	void EndWindow()
@@ -1412,7 +1412,7 @@ public:
 		font_offset[17]=font_offset[16];
 		free(data);
 	};
-	
+
 	void DrawChar(unsigned char ch, int x, int y)
 	{
 		x+=gui_winx;
@@ -1517,7 +1517,7 @@ public:
 		glEnd();
 		glDisable(GL_TEXTURE_2D);
 	};
-	
+
 	void DrawBox(int x, int y, int w, int h, Color& color)
 	{
 		if(w<0)
@@ -1525,7 +1525,7 @@ public:
 			x+=w;
 			w=-w;
 		}
-		
+
 		y-=1;
 
 		DrawBar(x, y, w, 1, color);
@@ -1533,7 +1533,7 @@ public:
 		DrawBar(x, y, 1, h, color);
 		DrawBar(x+w-1, y, 1, h, color);
 	};
-	
+
 	void DrawTexturedBar(int x, int y, int w, int h, Color& color, Texture& texture, Texture *effect)
 	{
 		glDisable(GL_BLEND);
@@ -1573,8 +1573,8 @@ public:
 			glColor4f(1,1,1, 1.0f);
 		glDisable(GL_TEXTURE_2D);
 	};
-	
-	void DrawBar(int x, int y, int w, int h, Color& color)
+
+	void DrawBar(int x, int y, int w, int h, Color color)
 	{
 		glDisable(GL_BLEND);
 		x+=gui_winx;
@@ -1587,7 +1587,7 @@ public:
 		glVertex3i(x+w, y, 0);
 		glEnd();
 	};
-	
+
 	void DrawLine(int x1, int y1, int x2, int y2, int width, Color& color)
 	{
 		glDisable(GL_BLEND);
@@ -1619,7 +1619,7 @@ public:
 		glEnd();
 		glLineWidth(1.0f);
 	};
-	
+
 	void DrawBarAlpha(int x, int y, int w, int h, Color& color, float alpha)
 	{
 		glEnable(GL_BLEND);
@@ -1663,7 +1663,7 @@ public:
 		DrawSprite(knobdot, x, y);
 		glLoadIdentity();
 	};
-	
+
 	void DrawLED(int x, int y, int colid, float intensity)
 	{
 		glEnable(GL_BLEND);
