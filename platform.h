@@ -1,4 +1,6 @@
 #include "DPInput.h"
+#define VK_OEM_COMMA 0xBC;
+#define VK_OEM_PERIOD 0xBE;
 
 DPInput *input;
 
@@ -159,10 +161,10 @@ void platform_start_midi_thread()
 {
 	DWORD dwThreadId;
 	hMidiThread=CreateThread(NULL,  			   // default security attributes
-        					0,                 // use default stack size  
-				            midiplay_thread,        // thread function 
-				            (LPVOID)0,             // argument to thread function 
-				            0,                 // use default creation flags 
+        					0,                 // use default stack size
+				            midiplay_thread,        // thread function
+				            (LPVOID)0,             // argument to thread function
+				            0,                 // use default creation flags
 				            &dwThreadId);   // returns the thread identifier
 }
 
