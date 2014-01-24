@@ -16,9 +16,9 @@ A visual studio compile process is available via vc-compile.bat, but instruction
 
 To build musagi you need two major prerequisites:
   - MinGW compiler (see http://www.mingw.org/) 
-    mingw-compile.bat assumes you install mingw into C:\
-  - DirectX 8 SDK
-    mingw-compile.bat assumes you install DX8 into C:\DX8install\DXF\DXSDK
+    * mingw-compile.bat assumes you install mingw into C:\
+  - Windows DirectX SDK (see http://www.microsoft.com and search for directX sdk)
+    * mingw-compile.bat assumes you install DX8 into C:\DX8install\DXF\DXSDK
     
 You are free to update the mingw-compile.bat file and change the assumed installation location of MinGW and DirectX.    
   
