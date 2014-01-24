@@ -64,7 +64,7 @@ bool SaveSong(char *filename)
 	kfclose(file);
 
 	LogPrint("main: save took %i ms", timeGetTime()-gtime);
-	
+
 	return true;
 }
 
@@ -89,8 +89,10 @@ bool LoadInstrument(GearStack *gs, FILE *file, bool songload)
 		instrument=new gin_midinst();
 	if(strcmp(gsname, "midperc")==0)
 		instrument=new gin_midperc();
+	#ifdef VST_PLUGIN_SDK
 	if(strcmp(gsname, "VSTi")==0)
 		instrument=new gin_vsti();
+	#endif
 	if(strcmp(gsname, "operator")==0)
 		instrument=new gin_operator();
 	if(strcmp(gsname, "wavein")==0)
@@ -230,7 +232,7 @@ bool LoadSong(char *filename)
 		ftempo*=3445.0f/3500.0f; // compensate for slightly different tempo formula
 	UpdateTempo();
 	kfread(&master_volume, 1, sizeof(float), file);
-	
+
 	// ?
 	// load gearstacks
 	int numstacks=0;
@@ -300,13 +302,13 @@ bool LoadSong(char *filename)
 		}
 
 	LogPrint("main: load took %i ms", timeGetTime()-gtime);
-	
+
 	if(errorcount>=5)
 		MessageBox(hWndMain, "Too many errors. If you want more details - quit the program, enable logging in config.txt, reload the song, then read log.txt", "Warning", MB_ICONEXCLAMATION);
 	errorcount=0;
-	
+
 	glkit_resized=true; // to allow snapped windows to adjust
-	
+
 	return true;
 }
 
@@ -359,7 +361,7 @@ bool ExportMID(char *filename)
 	fwrite(&byte, 1, 1, file);
 	byte=50;
 	fwrite(&byte, 1, 1, file);
-	
+
 	// -- track chunk
 
 	// id string
@@ -433,7 +435,7 @@ bool ExportMID(char *filename)
 	fwrite(&byte, 1, 1, file);
 	byte=(midi_datasize)&0xFF;
 	fwrite(&byte, 1, 1, file);
-	
+
 //	LogPrint("midi track data size: %i [%.8X]", midi_datasize, midi_datasize);
 
 	fclose(file);
