@@ -1,6 +1,6 @@
 This is the original musagi open source project, started by DrPetter
 
-All the source code is provided from my old development pile, but coherent build instructions are missing. Some portability steps and cleanup have been undertaken by others and packaged separately into the musagi-linux-2.tar.gz file to avoid eroding the original source material, mainly because I haven't personally verified these changes.
+All the source code is provided from my old development pile, but coherent build instructions are missing. Some portability steps and cleanup have been undertaken by others and packaged separately into the musagi-port branch to avoid eroding the original source material, mainly because I haven't personally verified these changes.
 
 Feel free to fork and modify this code, but try to contact someone that appears to be responsible or attached to it before you publish new things on your own.
 
