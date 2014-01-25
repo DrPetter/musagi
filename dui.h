@@ -38,7 +38,7 @@ public:
 	char current_window[64]; // preserved between frames
 	char namestring[16]; // for namespaces (to avoid conflict between instances of the same class)
 	char curname[64];
-
+	
 	int mouseregion;
 	bool lmbdown, lmbclick, lmbrelease, dlmbclick;
 	bool rmbdown, rmbclick, rmbrelease;
@@ -52,18 +52,14 @@ public:
 	int anchorx, anchory;
 	float anchorfx, anchorfy;
 	int anchorix, anchoriy;
-
+	
 	int tmousex, tmousey;
 	bool tlmbclick, trmbclick, tmmbclick;
-
+	
 	bool key_a, key_c, key_v;
 	bool shift_down;
 	bool ctrl_down;
-	bool delete_pressed;
-	bool space_down;
-	bool pageup, pagedown;
-	bool f1_down, f2_down, f3_down, f4_down, f5_down;
-
+	
 	int window_level;
 	int window_x[32];
 	int window_y[32];
@@ -77,20 +73,18 @@ public:
 	int mf_settled;
 	dui_MouseState realmouse[2];
 	int mouseprivilege;
-
+	
 	char *estring;
 	char eoldstring[128];
 	bool editstring;
 
 	int gui_winx;
 	int gui_winy;
-
+	
 	dui_State state; // state for current component
 	dui_State mstate; // state for current menu
 
 	float joyaxis[4];
-	bool joybutton[12];
-	bool joyclick[12];
 
 	// for part icons
 	int *part_ypos;
@@ -98,11 +92,8 @@ public:
 	float part_zoom;
 	int part_moy;
 	int part_mox;
-	int part_actualmove_dx;
-	int part_actualmove_dy;
 	bool part_is;
-	bool part_move;
-	int part_scrollmove;
+//	int part_ystart;
 
 	bool rcmenu;
 	int rcmenu_type;
@@ -110,17 +101,14 @@ public:
 	int rcmenu_x;
 	int rcmenu_y;
 	float *rcmenu_pval;
-	int rcresult;
-	int rcresult_param;
-	int rcresult_mousex;
-	int rcresult_mousey;
 
 	int tooltips_on;
 	int popup_counter;
 	char popup_text[128];
 
 	Color palette[32];
-
+	
+//	Texture plutt;
 	Texture font;
 	Texture knobe[4];
 	Texture knobtop;
@@ -128,6 +116,7 @@ public:
 	Texture knobshadow;
 	Texture buttonup;
 	Texture buttondown;
+//	Texture mouse;
 	Texture scrollbar_h1;
 	Texture scrollbar_h2;
 	Texture scrollbar_hs;
@@ -141,23 +130,17 @@ public:
 	Texture logo;
 	Texture vgradient;
 	Texture icon_resize;
-
-	int num_skins;
-	char skin_names[64][128];
-
-	int num_midiin;
-	char midiin_names[64][64];
-
+	
 	int font_width[110];
 	int font_offset[110];
-
+	
 	glkit_mouse *glkmouse;
 
 	DUI()
 	{
 		active_element[0]='\0';
 		active_window[0]='\0';
-
+		
 		mousewindow[0]='\0';
 		mf_settled=2;
 		ClearMouse();
@@ -167,19 +150,14 @@ public:
 		part_is=false;
 		editstring=false;
 		dlmb_counter=0;
-
+		
 		rcmenu=false;
-		rcresult=-1;
 		tlmbclick=false;
 		trmbclick=false;
 		tmmbclick=false;
 		tmousex=-1;
 		tmousey=-1;
-
-		part_move=false;
-		part_scrollmove=0;
-		part_actualmove_dx=0;
-		part_actualmove_dy=0;
+//		calibration=false;
 
 		tooltips_on=1;
 		popup_counter=0;
@@ -187,123 +165,118 @@ public:
 
 		FileSelectorInit();
 
-		LoadSkin(RPath("skins\\default"));
+		LogPrint("dui: loading textures");
+		font.LoadTGA("skin/font0.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		DetectFontWidths("skin/font0.tga");
 
-		num_skins=0;
-		strcpy(skin_names[num_skins++], "default");
-		strcpy(skin_names[num_skins++], "funky");
-		strcpy(skin_names[num_skins++], "green");
+//		plutt.LoadTGA("skin/plutt.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		knobe[0].LoadTGA("skin/knob1_edge0.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		knobe[1].LoadTGA("skin/knob1_edge1.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		knobe[2].LoadTGA("skin/knob1_edge2.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		knobe[3].LoadTGA("skin/knob1_edge3.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		knobtop.LoadTGA("skin/knob1_top.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		knobshadow.LoadTGA("skin/knob1_shadow.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		knobdot.LoadTGA("skin/knob1_dot.tga", TEXTURE_NOMIPMAPS);
+		buttonup.LoadTGA("skin/button1_up.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		buttondown.LoadTGA("skin/button1_down.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+//		mouse.LoadTGA("skin/mouse0.tga", TEXTURE_NOMIPMAPS);
+		scrollbar_h1.LoadTGA("skin/slidebar_h1.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		scrollbar_h2.LoadTGA("skin/slidebar_h2.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		scrollbar_hs.LoadTGA("skin/slider1_h.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		scrollbar_v1.LoadTGA("skin/slidebar_v1.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		scrollbar_v2.LoadTGA("skin/slidebar_v2.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		scrollbar_vs.LoadTGA("skin/slider1_v.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		brushed_metal.LoadTGA("skin/mainbg.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+//		wood_walnut.LoadTGA("skin/walnut2.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		wood_walnut.LoadTGA("skin/titlebar.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS|TEXTURE_NOREPEAT);
+		vglare.LoadTGA("skin/vglare.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS|TEXTURE_NOREPEAT);
+		led[0].LoadTGA("skin/led1.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		led[1].LoadTGA("skin/led2.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		led[2].LoadTGA("skin/led3.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		led[3].LoadTGA("skin/led4.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+//		logo.LoadTGA("skin/logo3.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		logo.LoadTGA("skin/logomask.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		vgradient.LoadTGA("skin/vgradient.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
+		icon_resize.LoadTGA("skin/icon_resize.tga", TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
 
-		num_midiin=1;
-		strcpy(midiin_names[0], "No device");
+		palette[0].r=0.5f;
+		palette[0].g=0.0f;
+		palette[0].b=0.0f;
+	
+		palette[1].r=0.0f;
+		palette[1].g=0.0f;
+		palette[1].b=0.5f;
+	
+		palette[2].r=1.0f;
+		palette[2].g=1.0f;
+		palette[2].b=1.0f;
+	
+		palette[3].r=1.0f;
+		palette[3].g=1.0f;
+		palette[3].b=0.0f;
+	
+		palette[4].r=0.4f;
+		palette[4].g=0.4f;
+		palette[4].b=0.4f;
+	
+		palette[5].r=0.45f;
+		palette[5].g=0.45f;
+		palette[5].b=0.45f;
+	
+		palette[6].r=0.0f;
+		palette[6].g=0.0f;
+		palette[6].b=0.0f;
+	
+		palette[7].r=0.5f;
+		palette[7].g=0.5f;
+		palette[7].b=0.5f;
+	
+		palette[8].r=160.0f/255;
+		palette[8].g=160.0f/255;
+		palette[8].b=160.0f/255;
+	
+		palette[9].r=1.0f;
+		palette[9].g=1.0f;
+		palette[9].b=1.0f;
+	
+		palette[10].r=0.75f;
+		palette[10].g=0.75f;
+		palette[10].b=0.75f;
+	
+		palette[11].r=1.0f;
+		palette[11].g=0.0f;
+		palette[11].b=0.0f;
+	
+		palette[12].r=0.0f;
+		palette[12].g=1.0f;
+		palette[12].b=0.0f;
+	
+		palette[13].r=0.0f;
+		palette[13].g=0.0f;
+		palette[13].b=1.0f;
+		
+		palette[14].r=0.3f;
+		palette[14].g=0.3f;
+		palette[14].b=0.3f;
 
-		for(int i=0;i<12;i++)
-		{
-			joybutton[i]=false;
-			joyclick[i]=false;
-		}
+		palette[15].r=0.6f;
+		palette[15].g=0.4f;
+		palette[15].b=0.4f;
+
+		palette[16].r=0.7f;
+		palette[16].g=0.7f;
+		palette[16].b=0.7f;
+
+		palette[17].r=0.55f;
+		palette[17].g=0.55f;
+		palette[17].b=0.55f;
 	};
-
+	
 	~DUI()
 	{
 	};
 
-	char* mstrcat(char* temp, char* str1, char* str2)
-	{
-		strcpy(temp, str1);
-		strcat(temp, str2);
-		return temp;
-	}
-
-	bool LoadSkin(char* path)
-	{
-		char temp[512];
-
-		LogPrint("dui: loading skin from \"%s\"", path);
-
-		font.LoadTGA(mstrcat(temp, path, "/font0.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		DetectFontWidths(mstrcat(temp, path, "/font0.tga"));
-		knobe[0].LoadTGA(mstrcat(temp, path, "/knob1_edge0.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		knobe[1].LoadTGA(mstrcat(temp, path, "/knob1_edge1.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		knobe[2].LoadTGA(mstrcat(temp, path, "/knob1_edge2.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		knobe[3].LoadTGA(mstrcat(temp, path, "/knob1_edge3.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		knobtop.LoadTGA(mstrcat(temp, path, "/knob1_top.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		knobshadow.LoadTGA(mstrcat(temp, path, "/knob1_shadow.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		knobdot.LoadTGA(mstrcat(temp, path, "/knob1_dot.tga"), TEXTURE_NOMIPMAPS);
-		buttonup.LoadTGA(mstrcat(temp, path, "/button1_up.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		buttondown.LoadTGA(mstrcat(temp, path, "/button1_down.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		scrollbar_h1.LoadTGA(mstrcat(temp, path, "/slidebar_h1.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		scrollbar_h2.LoadTGA(mstrcat(temp, path, "/slidebar_h2.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		scrollbar_hs.LoadTGA(mstrcat(temp, path, "/slider1_h.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		scrollbar_v1.LoadTGA(mstrcat(temp, path, "/slidebar_v1.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		scrollbar_v2.LoadTGA(mstrcat(temp, path, "/slidebar_v2.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		scrollbar_vs.LoadTGA(mstrcat(temp, path, "/slider1_v.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		brushed_metal.LoadTGA(mstrcat(temp, path, "/mainbg.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		wood_walnut.LoadTGA(mstrcat(temp, path, "/titlebar.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS|TEXTURE_NOREPEAT);
-		vglare.LoadTGA(mstrcat(temp, path, "/vglare.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS|TEXTURE_NOREPEAT);
-		led[0].LoadTGA(mstrcat(temp, path, "/led1.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		led[1].LoadTGA(mstrcat(temp, path, "/led2.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		led[2].LoadTGA(mstrcat(temp, path, "/led3.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		led[3].LoadTGA(mstrcat(temp, path, "/led4.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		logo.LoadTGA(mstrcat(temp, path, "/logomask.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		vgradient.LoadTGA(mstrcat(temp, path, "/vgradient.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-		icon_resize.LoadTGA(mstrcat(temp, path, "/icon_resize.tga"), TEXTURE_NOFILTER|TEXTURE_NOMIPMAPS);
-
-		LogPrint("dui: loading palette");
-
-		// load palette
-
-		BYTE * data;
-		FILE *file;
-		unsigned char byte, id_length;
-		int n, channels, x, y;
-		file=fopen(mstrcat(temp, path, "/palette.tga"), "rb");
-		if(!file) return false;
-		fread(&id_length, 1, 1, file);
-		fread(&byte, 1, 1, file);
-		fread(&byte, 1, 1, file);
-		if(byte!=2) return false;
-		for(n=0;n<5;n++) fread(&byte, 1, 1, file);
-		fread(&n, 1, 2, file);
-		fread(&n, 1, 2, file);
-		int width=0;
-		int height=0;
-		fread(&width, 1, 2, file);
-		fread(&height, 1, 2, file);
-		fread(&byte, 1, 1, file);
-		channels=byte/8;
-		fread(&byte, 1, 1, file);
-		for(n=0;n<id_length;n++)
-			fread(&byte, 1, 1, file);
-		int cid=19;
-		for(y=0;y<height;y++)
-			for(x=0;x<width;x++)
-			{
-				n=(y*width+x)*4;
-				fread(&byte, 1, 1, file);
-				int blue=byte;
-				fread(&byte, 1, 1, file);
-				int green=byte;
-				fread(&byte, 1, 1, file);
-				int red=byte;
-				if(channels==4)
-					fread(&byte, 1, 1, file);
-				if(y%10==5 && x==5)
-				{
-					palette[cid].r=(float)red/255;
-					palette[cid].g=(float)green/255;
-					palette[cid].b=(float)blue/255;
-					cid--;
-				}
-			}
-		fclose(file);
-
-		glClearColor(palette[7].r, palette[7].g, palette[7].b, 0);
-
-		return true;
-	}
-
-	// append namespace name to a string
+	// append namespace name to a string	
 	void SpaceName()
 	{
 		int last=strlen(curname);
@@ -325,8 +298,9 @@ public:
 		realmouse[i].rmbclick=rmbclick;
 		realmouse[i].mmbclick=mmbclick;
 		realmouse[i].dlmbclick=dlmbclick;
+//		LogPrint("dui: StoreMouse(%i) - lmbclick=%i", i, lmbclick);
 	};
-
+	
 	void LoadMouse(int i)
 	{
 		lmbdown=realmouse[i].lmbdown;
@@ -339,6 +313,7 @@ public:
 		rmbclick=realmouse[i].rmbclick;
 		mmbclick=realmouse[i].mmbclick;
 		dlmbclick=realmouse[i].dlmbclick;
+//		LogPrint("dui: LoadMouse(%i) - lmbclick=%i", i, lmbclick);
 	};
 
 	void ClearMouse()
@@ -353,6 +328,7 @@ public:
 		rmbclick=false;
 		mmbclick=false;
 		dlmbclick=false;
+//		LogPrint("dui: ClearMouse()");
 	};
 
 	bool MouseInZone(int x, int y, int w, int h)
@@ -361,15 +337,21 @@ public:
 			return true;
 		return false;
 	};
-
+	
 	void Update(DPInput *input)
 	{
+//		LogPrint("\ndui: Update() *****");
+		
 		LoadMouse(0);
 		StoreMouse(1);
-
+/*		if(lmbclick || rmbclick || mmbclick)
+		{
+			mousex=cmx;
+			mousey=cmy;
+		}
+*/		
 		mousex=glkmouse->glk_mousex;
 		mousey=glkmouse->glk_mousey;
-
 		mousedx=mousex-mousepx;
 		mousedy=mousey-mousepy;
 		mousepx=mousex;
@@ -381,34 +363,21 @@ public:
 		lmbrelease=false;
 		rmbrelease=false;
 		mmbrelease=false;
-
-		if(input->KeyPressed(DIK_LALT))
+		if(input->KeyPressed(SDLK_LALT))
+		{
 			glkmouse->glk_mousemiddle=glkmouse->glk_mouseleft;
-
-//		if(glkmouse->glk_mouseleftclick) lmbdown=true;
-//		if(glkmouse->glk_mouserightclick) lmbright=true;
-//		if(glkmouse->glk_mousemiddleclick) lmbmiddle=true;
-
+			glkmouse->glk_mouseleft=false;
+		}
 		if(!lmbdown && glkmouse->glk_mouseleft) lmbclick=true;
-//		if(glkmouse->glk_mouseleftclick) lmbclick=true;
 		if(lmbdown && !glkmouse->glk_mouseleft) lmbrelease=true;
 		lmbdown=glkmouse->glk_mouseleft;
 		if(!rmbdown && glkmouse->glk_mouseright) rmbclick=true;
-//		if(glkmouse->glk_mouserightclick) rmbclick=true;
 		if(rmbdown && !glkmouse->glk_mouseright) rmbrelease=true;
 		rmbdown=glkmouse->glk_mouseright;
 		if(!mmbdown && glkmouse->glk_mousemiddle) mmbclick=true;
-//		if(glkmouse->glk_mousemiddleclick) mmbclick=true;
 		if(mmbdown && !glkmouse->glk_mousemiddle) mmbrelease=true;
 		mmbdown=glkmouse->glk_mousemiddle;
 		mousewheel=glkmouse->glk_mousewheel;
-
-		if(input->KeyPressed(DIK_LALT))
-		{
-			lmbdown=false;
-			lmbclick=false;
-			lmbrelease=false;
-		}
 
 		if(mousedx!=0 || mousedy!=0 || lmbclick || rmbclick || mmbclick)
 		{
@@ -416,11 +385,12 @@ public:
 			popup_text[0]='\0';
 		}
 
+//		if(abs(mousedx)>1 || abs(mousedy)>1)
 		if(mousedx!=0 || mousedy!=0)
 			dlmb_counter=0;
 		else
 			popup_counter++;
-/*		if(lmbclick)
+		if(lmbclick)
 		{
 			if(dlmb_counter>0)
 			{
@@ -432,22 +402,15 @@ public:
 		}
 		if(dlmb_counter>0)
 			dlmb_counter--;
-*/
 
-//		if(lmbclick)
-//			LogPrint("ONE CLICK");
-		if(glkmouse->glk_mousedoubleclick)
-		{
-//			LogPrint("ONE DOUBLE CLICK");
-			lmbclick=true;
-			dlmbclick=true;
-		}
-
+//		if(!lmbdown && !rmbdown && !mmbdown)
 		if(lmbclick || rmbclick || mmbclick)
 		{
 			mouseregion=0;
 			mousex=glkmouse->glk_cmx;
 			mousey=glkmouse->glk_cmy;
+//			cmx=mousex;
+//			cmy=mousey;
 		}
 
 		if(rcmenu) // repress mouse events during right-click menu... somewhat ugly
@@ -462,19 +425,13 @@ public:
 			lmbclick=false;
 			rmbclick=false;
 			mmbclick=false;
+//			lmbdown=false;
+//			rmbdown=false;
+//			mmbdown=false;
 		}
 
-		shift_down=input->KeyPressed(DIK_LSHIFT)||input->KeyPressed(DIK_RSHIFT);
-		ctrl_down=input->KeyPressed(DIK_LCONTROL)||input->KeyPressed(DIK_RCONTROL);
-		delete_pressed=input->KeyPressed(DIK_DELETE);
-		space_down=input->KeyPressed(DIK_SPACE);
-		pageup=input->KeyPressed(DIK_PRIOR);
-		pagedown=input->KeyPressed(DIK_NEXT);
-		f1_down=input->KeyPressed(DIK_F1);
-		f2_down=input->KeyPressed(DIK_F2);
-		f3_down=input->KeyPressed(DIK_F3);
-		f4_down=input->KeyPressed(DIK_F4);
-		f5_down=input->KeyPressed(DIK_F5);
+		shift_down=input->KeyPressed(SDLK_LSHIFT)||input->KeyPressed(SDLK_RSHIFT);
+		ctrl_down=input->KeyPressed(SDLK_LCTRL)||input->KeyPressed(SDLK_RCTRL);
 		if(editstring)
 		{
 			key_a=false;
@@ -483,10 +440,15 @@ public:
 		}
 		else
 		{
-			key_a=input->KeyPressed(DIK_A);
-			key_c=input->KeyPressed(DIK_C);
-			key_v=input->KeyPressed(DIK_V);
+			key_a=input->KeyPressed(SDLK_a);
+			key_c=input->KeyPressed(SDLK_c);
+			key_v=input->KeyPressed(SDLK_v);
 		}
+		
+		joyaxis[0]+=((-input->JoyAxis(0)*0.5f+0.5f)-joyaxis[0])*0.2f;
+		joyaxis[1]+=((-input->JoyAxis(1)*0.5f+0.5f)-joyaxis[1])*0.2f;
+//		joyaxis[1]=-input->JoyAxis(1)*0.5f+0.5f;
+
 		window_level=0;
 		window_x[0]=0;
 		window_y[0]=0;
@@ -495,13 +457,16 @@ public:
 
 		if(editstring)
 		{
-			delete_pressed=false; // to avoid doing nasty stuff while editing text
 			char glkkey=glkitGetKey();
 			if(glkkey!=0)
 			{
 				int slen=(int)strlen(estring);
+//				if(glkkey>='a' && glkkey<='z') // forbid lower case ascii
+//					glkkey-='a'-'A';
 				if(slen<48 && ((glkkey>=' ' && glkkey<='~'+1) || glkkey=='Å' || glkkey=='Ä' || glkkey=='Ö' || glkkey=='å' || glkkey=='ä' || glkkey=='ö'))
 				{
+//					if(glkkey>='A' && glkkey<='Z') // upper case -> lower case
+//						glkkey+='a'-'A';
 					estring[slen-1]=glkkey;
 					estring[slen+0]='_';
 					estring[slen+1]='\0';
@@ -513,7 +478,7 @@ public:
 				}
 				if(glkkey==13) // enter
 					FinishStringEdit();
-				if(input->KeyPressed(DIK_ESCAPE))
+				if(input->KeyPressed(SDLK_ESCAPE))
 					CancelStringEdit();
 			}
 			if(lmbclick || rmbclick || mmbclick)
@@ -523,9 +488,14 @@ public:
 
 		if(mf_settled==0)
 		{
+//			LogPrint("dui: mf_settled, mousewindow==\"%s\" ------", mousewindow);
 			StoreMouse(0);
 			mousex=glkmouse->glk_cmx;
 			mousey=glkmouse->glk_cmy;
+//			mousex=mousepx;
+//			mousey=mousepy;
+//			mousepx-=mousedx;
+//			mousepy-=mousedy;
 		}
 		else
 		{
@@ -534,29 +504,19 @@ public:
 		}
 		mf_settled++;
 
+/*		if(!realmouse[1].lmbclick && !realmouse[1].rmbclick && !realmouse[1].mmbclick)
+		{
+		}
+		else
+*/
 		mouseprivilege=0;
 		ClearMouse();
 
-//		glkmouse->glk_mouseleftclick=false;
-//		glkmouse->glk_mouserightclick=false;
-//		glkmouse->glk_mousemiddleclick=false;
-
 		namestring[0]='\0';
 	};
-
-	bool CheckRCResult(int value)
-	{
-		if(rcresult==value)
-		{
-			rcresult=-1;
-			return true;
-		}
-		return false;
-	};
-
+	
 	float* DoOverlay(int& choice) // returns right-click menu choice, if any.... uh, that's ugly :P
 	{
-		rcresult=-1;
 		if(rcmenu)
 		{
 			float *value=DoRCMenu(choice);
@@ -571,9 +531,9 @@ public:
 			}
 			return value;
 		}
-		else if(tooltips_on || ctrl_down)
+		else if(tooltips_on)
 		{
-			if((ctrl_down || popup_counter>40) && popup_text[0]!='\0')
+			if(popup_counter>40 && popup_text[0]!='\0')
 			{
 				int width=VStringLength(popup_text);
 				int x=mousex;
@@ -609,6 +569,8 @@ public:
 	void CancelStringEdit()
 	{
 		strcpy(estring, eoldstring);
+//		int slen=(int)strlen(estring);
+//		estring[slen-1]='\0';
 		editstring=false;
 	};
 
@@ -616,34 +578,10 @@ public:
 	{
 		rcmenu=true;
 		rcmenu_type=1;
+		rcmenu_coffset=10;
 		rcmenu_x=mousex-10;
 		rcmenu_y=mousey-4;
 		rcmenu_pval=(float*)333; // bogus, not used
-	};
-
-	void PopupMenu(int type, int param)
-	{
-		rcmenu=true;
-		rcmenu_type=type;
-		rcmenu_x=mousex-10;
-		rcmenu_y=mousey-4;
-		rcmenu_pval=(float*)333; // bogus, not used
-		rcresult_param=param;
-		rcresult_mousex=mousex;
-		rcresult_mousey=mousey;
-	};
-
-	void CloseMenu()
-	{
-		if(rcmenu)
-		{
-			rcmenu=false;
-			tlmbclick=false;
-			trmbclick=false;
-			tmmbclick=false;
-			tmousex=-1;
-			tmousey=-1;
-		}
 	};
 
 	float* DoRCMenu(int& choice)
@@ -655,84 +593,27 @@ public:
 		mmbclick=tmmbclick;
 		int width=0;
 		int numitems=0;
-		char sitem[40][32];
-		rcmenu_coffset=rcmenu_type*10;
-		numitems=0;
-		if(rcmenu_type==0) // knob
+		char sitem[10][32];
+		if(rcmenu_type==0)
 		{
-			width=120;
-			strcpy(sitem[numitems++], "record");
-			strcpy(sitem[numitems++], "clear recording");
-			strcpy(sitem[numitems++], "make default value");
-			strcpy(sitem[numitems++], "use joystick 1");
-			strcpy(sitem[numitems++], "use joystick 2");
-			strcpy(sitem[numitems++], "unmap joystick");
+			width=50;
+			numitems=3;
+			strcpy(sitem[0], "record");
+			strcpy(sitem[1], "clear");
+			strcpy(sitem[2], "default");
 		}
-		else if(rcmenu_type==1) // new instrument
+		else if(rcmenu_type==1)
 		{
 			width=70;
-			strcpy(sitem[numitems++], "xnes");
-			strcpy(sitem[numitems++], "chip");
-			strcpy(sitem[numitems++], "vsmp");
-			strcpy(sitem[numitems++], "swave");
-			strcpy(sitem[numitems++], "protobass");
-			strcpy(sitem[numitems++], "midinst");
-			strcpy(sitem[numitems++], "midperc");
-			strcpy(sitem[numitems++], "VSTi");
-			strcpy(sitem[numitems++], "operator");
-			strcpy(sitem[numitems++], "wavein");
-		}
-		else if(rcmenu_type==2) // spart
-		{
-			width=100;
-			strcpy(sitem[numitems++], "rename [F2]");
-			strcpy(sitem[numitems++], "copy [Ctrl+C]");
-			strcpy(sitem[numitems++], "clone [Ctrl+D]");
-			strcpy(sitem[numitems++], "delete [DEL]");
-		}
-		else if(rcmenu_type==3) // instrument in instrument list
-		{
-			width=120;
-			strcpy(sitem[numitems++], "rename");
-			strcpy(sitem[numitems++], "use for current part");
-			strcpy(sitem[numitems++], "load/replace");
-			strcpy(sitem[numitems++], "save");
-			strcpy(sitem[numitems++], "delete");
-		}
-		else if(rcmenu_type==4) // empty song area
-		{
-			width=120;
-			strcpy(sitem[numitems++], "add new part");
-			strcpy(sitem[numitems++], "mute/unmute track");
-			strcpy(sitem[numitems++], "toggle solo track");
-		}
-		else if(rcmenu_type==5) // empty spot in instrument list
-		{
-			width=40;
-			strcpy(sitem[numitems++], "new");
-			strcpy(sitem[numitems++], "load");
-		}
-		else if(rcmenu_type==6) // skin selection
-		{
-			width=120;
-			for(int i=0;i<num_skins;i++)
-				strcpy(sitem[numitems++], skin_names[i]);
-		}
-		else if(rcmenu_type==9) // midi device selection
-		{
-			width=200;
-			strcpy(sitem[numitems++], "(Disable)");
-			for(int i=0;i<num_midiin;i++)
-				strcpy(sitem[numitems++], midiin_names[i]);
+			numitems=5;
+			strcpy(sitem[0], "xnes");
+			strcpy(sitem[1], "chip");
+			strcpy(sitem[2], "vsampler");
+			strcpy(sitem[3], "swave");
+			strcpy(sitem[4], "protobass");
 		}
 		else
 			return NULL;
-
-		if(rcmenu_y+numitems*10+3>glkitGetHeight())
-			rcmenu_y=glkitGetHeight()-numitems*10-3;
-		if(rcmenu_x+width>glkitGetWidth())
-			rcmenu_x=glkitGetWidth()-width;
-
 		for(int i=0;i<numitems;i++)
 		{
 			bool cur=MouseInZone(rcmenu_x, rcmenu_y+i*10, width, 10);
@@ -740,8 +621,8 @@ public:
 			{
 				if(cur)
 				{
+//					LogPrint("dui: rcmenu selected %i (%.8X)", i, rcmenu_pval);
 					choice=i+rcmenu_coffset;
-					rcresult=choice;
 					return rcmenu_pval;
 				}
 			}
@@ -799,16 +680,15 @@ public:
 			if(clipw<0) clipw=0;
 			if(cliph<0) cliph=0;
 		}
-		if(glkitHalfRes())
-			glScissor(clipx*2, (glkitGetHeight()-(clipy)-cliph)*2, clipw*2, cliph*2);
-		else
-			glScissor(clipx, glkitGetHeight()-(clipy)-cliph, clipw, cliph);
+//		glScissor(x, glkitGetHeight()-(y)-h, w, h);
+		glScissor(clipx, glkitGetHeight()-(clipy)-cliph, clipw, cliph);
 		glEnable(GL_SCISSOR_TEST);
 
 		LoadMouse(0);
 		bool mactivate=(!dlmbclick && (lmbclick||rmbclick||mmbclick) && MouseInZone(x, y, w, h));
 		if(mactivate)
 		{
+//			LogPrint("dui: mactivate for window \"%s\" ------ %i%i%i", winid, lmbclick, mmbclick, rmbclick);
 			mf_settled=0;
 			strcpy(mousewindow, winid);
 		}
@@ -816,6 +696,7 @@ public:
 		{
 			LoadMouse(1);
 			mouseprivilege++;
+//			LogPrint("dui: window \"%s\" has mouse focus", winid);
 		}
 		else
 			ClearMouse();
@@ -831,12 +712,8 @@ public:
 		if(window_level==0)
 			glDisable(GL_SCISSOR_TEST);
 		else
-		{
-			if(glkitHalfRes())
-				glScissor(window_x[window_level]*2, (glkitGetHeight()-(window_y[window_level])-window_h[window_level])*2, window_w[window_level]*2, window_h[window_level]*2);
-			else
-				glScissor(window_x[window_level], glkitGetHeight()-(window_y[window_level])-window_h[window_level], window_w[window_level], window_h[window_level]);
-		}
+//			glScissor(window_x[window_level], glkitGetHeight()-(window_x[window_level])-window_h[window_level], window_w[window_level], window_h[window_level]);
+			glScissor(window_x[window_level], glkitGetHeight()-(window_y[window_level])-window_h[window_level], window_w[window_level], window_h[window_level]);
 		mouseprivilege--;
 		if(mouseprivilege<=0)
 		{
@@ -844,25 +721,19 @@ public:
 			ClearMouse();
 		}
 	};
-
+	
 	void DeselectWindow()
 	{
 		active_window[0]='\0';
 	};
-
-	bool NoActiveWindow()
-	{
-		if(active_window[0]=='\0')
-			return true;
-		return false;
-	};
-
+	
 	void NameSpace(void *identifier)
 	{
 		if(identifier==NULL)
 			namestring[0]='\0';
 		else
 			sprintf(namestring, "%.8X", identifier);
+//		LogPrint("Namespace is now: \"%s\"", namestring);
 	};
 
 	bool DoButtonLogic(int x, int y, int w, int h, float& value, char *idstr) // Use config file thing instead of manual coordinates/sizes?
@@ -876,6 +747,8 @@ public:
 		state.mdx=mousedx;
 		state.mdy=mousedy;
 		state.clicked=false;
+		
+//		LogPrint("dui: button, lmbclick=%i", lmbclick);
 
 		bool activated=false; // To save a string comparison
 		if(strcmp(idstr, active_element)!=0) // Inactive
@@ -901,6 +774,7 @@ public:
 			}
 			if(lmbclick && MouseInZone(x, y, w, h)) // LMB down
 			{
+//				part_ystart=(*part_ypos);
 				part_mox=0;
 				part_moy=0;
 			}
@@ -919,36 +793,29 @@ public:
 			}
 			if(lmbdown) // Dragging knob (where applicable)
 			{
-				float dragdelta=mousedy*0.01f;
-				int xdist=abs(mousex-(x+8));
-				if(xdist>50)
-					dragdelta/=1.0f+(xdist-50)*0.05f; // scale drag speed based on x distance
 				if(shift_down)
-					value-=dragdelta*0.1f;
+					value-=mousedy*0.001f;
 				else
-					value-=dragdelta;
+					value-=mousedy*0.01f;
 				if(value<0.0f) value=0.0f;
 				if(value>1.0f) value=1.0f;
-
+				
 				// dragging part icon (where applicable)
-				if(part_is && !space_down) // ignore if space-scrolling
+				if(part_is)
 				{
 					part_moy+=mousedy;
-					part_actualmove_dy=part_moy/10;
+					(*part_ypos)+=part_moy/10;
 					if(part_moy>=10)
 						part_moy=part_moy%10;
 					if(part_moy<=-10)
 						part_moy=-((-part_moy)%10);
 
-					part_mox+=mousedx+part_scrollmove;
-					part_scrollmove=0;
-					part_actualmove_dx=(part_mox/4)*160*16;
+					part_mox+=mousedx;
+					(*part_start)+=(part_mox/4)*160*16;
 					if(part_mox>=4)
 						part_mox=part_mox%4;
 					if(part_mox<=-4)
 						part_mox=-((-part_mox)%4);
-
-					part_move=true;
 				}
 			}
 			part_is=false;
@@ -982,13 +849,16 @@ public:
 
 		float dummy=0.0f;
 		bool active=DoButtonLogic(x, y, 20, 10, dummy, idstr);
+//		DrawButton(0, x, y, w, h, active, active&&lmbdown&&MouseInZone(x+gui_winx, y+gui_winy, w, h), 0.0f);
 		if(red)
 			glColor4f(1,0.7f,0.7f,1);
 		else
 			glColor4f(1,1,1,1);
 		if(active && lmbdown && MouseInZone(x+gui_winx, y+gui_winy, 20, 10))
+//			DrawBar(x, y, w, h, palette[0]);
 			DrawSprite(buttondown, x, y);
 		else
+//			DrawBar(x, y, w, h, palette[1]);
 			DrawSprite(buttonup, x, y);
 		glColor4f(1,1,1,1);
 		if(active)
@@ -1022,56 +892,38 @@ public:
 		if(jax>-1)
 			value=joyaxis[jax];
 
+//		if(calibration) // "fake" ui call to set up knobrec pointers
+//			KnobRecCalibrate(idstr, &value);
+
 		int rec=KnobRecState(&value);
 		DrawKnob(x, y, value, rec);
 		return active;
 	};
-	void DoPartIcon(int x, int y, int w, int& start, int& ypos, float zoom, Color& color, Color& instcol, char *name, int mode, bool clone, char *idstr)
+	void DoPartIcon(int x, int y, int w, int& start, int& ypos, float zoom, Color& color, char *name, int mode, bool clone, char *idstr)
 	{
-		int framecol=6;
-		bool active=false;
 		if(mode==0)
 		{
 			part_start=&start;
 			part_ypos=&ypos;
 			part_zoom=zoom;
-
+	
 			part_is=true;
 			float dummy;
-			active=DoButtonLogic(x, y, w, 10, dummy, idstr);
+			bool active=DoButtonLogic(x, y, w, 10, dummy, idstr);
 			DrawTexturedBar(x, y, w, 10, color, vgradient, &vglare); // title bar
-			if(clone) // clone body
-			{
-				DrawBar(x, y+4, w, 5, palette[15]);
-				DrawBar(x, y+3, w, 2, palette[4]);
-			}
-			DrawBox(x, y, w, 10, palette[framecol]); // frame
+			if(clone)
+				DrawBar(x, y+5, w, 5, palette[14]); // clone body
+			DrawBox(x, y, w, 10, palette[6]); // frame
 		}
 		else
-		{
-			framecol=18;
-			DrawBox(x, y, w, 10, palette[framecol]); // frame
-		}
+			DrawBox(x, y, w, 10, palette[9]); // frame
 		EnterWindow(current_window, x+1+gui_winx, y+gui_winy, 0, 0, w-2, 9);
 		char pyttestr[3];
 		pyttestr[0]=name[0];
 		pyttestr[1]=name[1];
 		pyttestr[2]='\0';
-		if(mode==0)
-		{
-			DrawBar(0, 0, 18, 5, instcol); // number bg (top half)
-			instcol.r*=0.8f;
-			instcol.g*=0.8f;
-			instcol.b*=0.8f;
-			DrawBar(0, 5, 18, 5, instcol); // number bg (bottom half)
-		}
-		DrawBox(-1, 0, 19, 10, palette[framecol]); // number frame
-		if(mode==0)
-		{
-			DrawText(2, 0, palette[9], pyttestr); // instrument number
-			int textcol=18;
-			DrawText(20, 0, palette[textcol], &name[3]); // name
-		}
+		DrawText(2, 0, palette[9], pyttestr); // instrument number
+		DrawText(17, 0, palette[8], &name[2]); // name
 		LeaveWindow();
 	};
 	void RequestWindowFocus(char *idstr)
@@ -1080,13 +932,6 @@ public:
 		SpaceName();
 		idstr=curname;
 		strcpy(active_window, idstr);
-	};
-	void DropWindowFocus(char *idstr)
-	{
-		strcpy(curname, idstr);
-		SpaceName();
-		if(strcmp(active_window, curname)==0)
-			strcpy(active_window, "");
 	};
 	bool StartWindowSnapX(int& x, int& y, int& snapx, int w, int h, char *title, char *idstr)
 	{
@@ -1120,22 +965,25 @@ public:
 	{
 		return StartWindow(x, y, false, w, h, true, minw, minh, maxh, title, idstr);
 	};
+//	bool StartWindow(int& x, int& y, bool xsnap, int w, int h, char *title, char *idstr)
 	bool StartWindow(int& x, int& y, bool xsnap, int& w, int& h, bool resize, int minw, int minh, int maxh, char *title, char *idstr)
 	{
-		bool instrument_window=false;
-		if(strcmp(idstr, "iwin")==0)
-			instrument_window=true;
 		strcpy(curname, idstr);
 		SpaceName();
 		idstr=curname;
-
+		
 		glLoadIdentity();
 		glTranslatef(0.0f, 0.0f, 0.0f);
+		
+//		LogPrint("dui: starting window \"%s\"", idstr);
+
+//		LoadMouse(1);
 
 		LoadMouse(0);
 		bool mactivate=(!dlmbclick && (lmbclick||rmbclick||mmbclick) && MouseInZone(x, y, w, 12));
 		if(mactivate)
 		{
+//			LogPrint("dui: mactivate (titlebar) for window \"%s\" ------ %i%i%i", idstr, lmbclick, mmbclick, rmbclick);
 			mf_settled=0;
 			strcpy(mousewindow, idstr);
 		}
@@ -1147,10 +995,8 @@ public:
 		float dummy;
 		bool activate=((lmbclick||rmbclick||mmbclick) && MouseInZone(x, y, w, h+12));
 		bool moved=false;
-		int tbw=w;
-		if(instrument_window)
-			tbw=275; // don't allow window dragging on the color selector bar
-		if(DoButtonLogic(x, y, tbw, 12, dummy, idstr) && lmbdown) // dragging window
+//		if(DoButtonLogic(x-12, y, w, 12, dummy, idstr) && lmbdown) // dragging window
+		if(DoButtonLogic(x, y, w, 12, dummy, idstr) && lmbdown) // dragging window
 		{
 			if(!xsnap)
 				x+=mousedx;
@@ -1173,6 +1019,8 @@ public:
 				anchorix=w;
 				anchoriy=h;
 			}
+//			w+=mousedx;
+//			h+=mousedy;
 			w=anchorix+(mousex-anchorx);
 			h=anchoriy+(mousey-anchory);
 			if(w<minw) w=minw;
@@ -1187,6 +1035,7 @@ public:
 		bool active=(strcmp(active_window, idstr)==0);
 		DrawTexturedBar(x, y, w, 12, palette[9], wood_walnut, &vglare); // title bar
 		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+//		DrawSprite(iconify, x+w-13, y+2);
 		DrawBox(x, y, w, 12, palette[6]); // title bar frame
 		// title
 		int colorout=8;
@@ -1202,14 +1051,18 @@ public:
 		DrawText(x+3, y+2, palette[colorout], title);
 		DrawText(x+3, y+1, palette[colorin], title);
 
+//		EnterWindow(idstr, x, y+12, 0, 0, w, h);
 		EnterWindow(idstr, x, y, 0, 0, w, h+12);
+
+//		DrawBar(0, 0, w, h, color); // window body
 		DrawBox(0, 12, w, h, palette[6]); // window frame
 
 		if(moved)
 			x+=mousedx;
-
+		
 		return active;
 	};
+//	void StartFlatWindow(int x, int y, int z, int w, int h, Color& color)
 	void StartFlatWindow(int x, int y, int w, int h, char *idstr)
 	{
 		strcpy(curname, idstr);
@@ -1218,8 +1071,12 @@ public:
 
 		glLoadIdentity();
 		glTranslatef(0.0f, 0.0f, 0.0f);
-
+		
 		EnterWindow(current_window, x, y, 0, 0, w, h);
+//		EnterWindow(idstr, x, y, 0, 0, w, h);
+
+//		DrawBar(0, 0, w, h, color); // window body
+//		DrawBox(0, -1, w, h+1, palette[6]); // window frame
 	};
 	void EndWindow()
 	{
@@ -1233,6 +1090,7 @@ public:
 
 		float dummy;
 		char sid[32];
+//		DrawBox(x, y, w, h, palette[6]); // area border
 		bool hscroll=fw>w;
 		bool vscroll=fh>h;
 		if(hscroll && vscroll)
@@ -1254,6 +1112,7 @@ public:
 			if(ascroll && lmbdown) // dragging slider
 			{
 				mouseregion=1;
+//				scrollx+=(float)mousedx/(width-16);
 				scrollx=anchorfx+(float)(mousex-anchorx)/(width-16);
 			}
 			else
@@ -1289,6 +1148,8 @@ public:
 		if(vscroll)
 		{
 			int height=h;
+//			if(hscroll)		// why is this commented out?
+//				height-=8;
 			strcpy(sid, idstr);
 			strcat(sid, "V");
 			bool ascroll=false;
@@ -1301,6 +1162,7 @@ public:
 			if(ascroll && lmbdown) // dragging slider
 			{
 				mouseregion=1;
+//				scrolly+=(float)mousedy/(height-16);
 				scrolly=anchorfy+(float)(mousey-anchory)/(height-16);
 			}
 			else
@@ -1333,17 +1195,9 @@ public:
 		}
 		else
 			scrolly=0.0f; // reset scroll to get predictable behavior for large areas
-		if(&color != &palette[0]) // skip window fill for color 0
-			DrawBar(x, y, w, h, color); // area body
-		EnterWindow(current_window, gui_winx+x, gui_winy+y, (int)(scrollx*(fw-w)), (int)(scrolly*(fh-h)), w, h);
-	};
-	void ShadowScrollArea(int x, int y, int w, int h, float& scrollx, float& scrolly, int fw, int fh, Color& color, char *idstr)
-	{
-		strcpy(curname, idstr);
-		SpaceName();
-		idstr=curname;
-		if(&color != &palette[0]) // skip window fill for color 0
-			DrawBar(x, y, w, h, color); // area body
+		if(hscroll && vscroll) // UGLYYY, this doesn't imply resize
+			DrawSprite(icon_resize, x+w, y+h);
+		DrawBar(x, y, w, h, color); // area body
 		EnterWindow(current_window, gui_winx+x, gui_winy+y, (int)(scrollx*(fw-w)), (int)(scrolly*(fh-h)), w, h);
 	};
 	void EndScrollArea()
@@ -1355,7 +1209,7 @@ public:
 
 	void DetectFontWidths(const char *filename)
 	{
-		BYTE * data;
+		unsigned char * data;
 		FILE *file;
 		unsigned char byte, id_length/*, chan[4]*/;
 		int n, width, height, channels, x, y;
@@ -1412,13 +1266,16 @@ public:
 		font_offset[17]=font_offset[16];
 		free(data);
 	};
-
-	void DrawChar(unsigned char ch, int x, int y)
+	
+	void DrawChar(unsigned char ch, int x, int y, Color &color)
 	{
 		x+=gui_winx;
 		y+=gui_winy;
+		glBindTexture(GL_TEXTURE_2D, font.getHandle());
+		glColor4f(color.r, color.g, color.b, 1.0f);
 		ch-=' ';
 		float u=(float)(ch*8+font_offset[ch])/1024;
+		glBegin(GL_QUADS);
 		glTexCoord2f(u, 1);
 		glVertex3i(x, y, 0);
 		glTexCoord2f(u, 0);
@@ -1427,24 +1284,22 @@ public:
 		glVertex3i(x+font_width[ch], y+8, 0);
 		glTexCoord2f(u+(float)font_width[ch]/1024, 1);
 		glVertex3i(x+font_width[ch], y, 0);
+		glEnd();
+//		glLoadIdentity();
 	};
 
 	void DrawText(int sx, int sy, Color& color, char *string, ...)
 	{
-		glEnable(GL_BLEND);
 		glEnable(GL_TEXTURE_2D);
 		char string2[256];
 		va_list args;
-
+	
 		va_start(args, string);
 		vsprintf(string2, string, args);
 		va_end(args);
-
+	
 		int len=strlen(string2);
 		int offset=0;
-		glColor4f(color.r, color.g, color.b, 1.0f);
-		glBindTexture(GL_TEXTURE_2D, font.getHandle());
-		glBegin(GL_QUADS);
 		for(int i=0;i<len;i++)
 		{
 			unsigned char ch=string2[i];
@@ -1455,10 +1310,9 @@ public:
 			if((char)ch=='å') { ch='~'+5; yo=-1; }
 			if((char)ch=='ä') { ch='~'+6; yo=-1; }
 			if((char)ch=='ö') { ch='~'+7; yo=-1; }
-			DrawChar(ch, sx+offset, sy);
+			DrawChar(ch, sx+offset, sy, color);
 			offset+=font_width[ch-' ']+1;
 		}
-		glEnd();
 		glDisable(GL_TEXTURE_2D);
 	};
 
@@ -1466,11 +1320,11 @@ public:
 	{
 		char string2[256];
 		va_list args;
-
+	
 		va_start(args, string);
 		vsprintf(string2, string, args);
 		va_end(args);
-
+	
 		int len=strlen(string2);
 		int offset=0;
 		for(int i=0;i<len;i++)
@@ -1487,18 +1341,6 @@ public:
 		return offset;
 	};
 
-	void DrawSprite(Texture& sprite, int x, int y, Color& color)
-	{
-		glDisable(GL_BLEND);
-		glColor4f(color.r, color.g, color.b, 1.0f);
-		DrawSprite(sprite, x, y);
-	};
-	void DrawSpriteAlpha(Texture& sprite, int x, int y, float alpha)
-	{
-		glEnable(GL_BLEND);
-		glColor4f(1.0f, 1.0f, 1.0f, alpha);
-		DrawSprite(sprite, x, y);
-	};
 	void DrawSprite(Texture& sprite, int x, int y)
 	{
 		x+=gui_winx;
@@ -1517,26 +1359,26 @@ public:
 		glEnd();
 		glDisable(GL_TEXTURE_2D);
 	};
-
+	
 	void DrawBox(int x, int y, int w, int h, Color& color)
 	{
-		if(w<0)
-		{
-			x+=w;
-			w=-w;
-		}
-
-		y-=1;
-
-		DrawBar(x, y, w, 1, color);
-		DrawBar(x, y+h, w, 1, color);
-		DrawBar(x, y, 1, h, color);
-		DrawBar(x+w-1, y, 1, h, color);
+		x+=gui_winx;
+		y+=gui_winy;
+		glColor4f(color.r, color.g, color.b, 1.0f);
+		glBegin(GL_LINES);
+		glVertex3i(x, y, 0);
+		glVertex3i(x+w, y, 0);
+		glVertex3i(x, y, 0);
+		glVertex3i(x, y+h, 0);
+		glVertex3i(x+w-1, y, 0);
+		glVertex3i(x+w-1, y+h, 0);
+		glVertex3i(x, y+h, 0);
+		glVertex3i(x+w, y+h, 0);
+		glEnd();
 	};
-
+	
 	void DrawTexturedBar(int x, int y, int w, int h, Color& color, Texture& texture, Texture *effect)
 	{
-		glDisable(GL_BLEND);
 		x+=gui_winx;
 		y+=gui_winy;
 		glColor4f(color.r, color.g, color.b, 1.0f);
@@ -1552,10 +1394,9 @@ public:
 		glTexCoord2f((float)w/512, 1.0f);
 		glVertex3i(x+w, y, 0);
 		glEnd();
+		glColor4f(1,1,1, 0.3f);
 		if(effect!=NULL)
 		{
-			glEnable(GL_BLEND);
-			glColor4f(1,1,1, 0.3f);
 			glBindTexture(GL_TEXTURE_2D, effect->getHandle());
 			if(w>128) w=128;
 			glBegin(GL_QUADS);
@@ -1569,14 +1410,11 @@ public:
 			glVertex3i(x+w, y, 0);
 			glEnd();
 		}
-		else
-			glColor4f(1,1,1, 1.0f);
 		glDisable(GL_TEXTURE_2D);
 	};
-
-	void DrawBar(int x, int y, int w, int h, Color color)
+	
+	void DrawBar(int x, int y, int w, int h, Color& color)
 	{
-		glDisable(GL_BLEND);
 		x+=gui_winx;
 		y+=gui_winy;
 		glColor4f(color.r, color.g, color.b, 1.0f);
@@ -1587,10 +1425,9 @@ public:
 		glVertex3i(x+w, y, 0);
 		glEnd();
 	};
-
+	
 	void DrawLine(int x1, int y1, int x2, int y2, int width, Color& color)
 	{
-		glDisable(GL_BLEND);
 		x1+=gui_winx;
 		y1+=gui_winy;
 		x2+=gui_winx;
@@ -1603,26 +1440,9 @@ public:
 		glEnd();
 		glLineWidth(1.0f);
 	};
-
-	void DrawLineAlpha(int x1, int y1, int x2, int y2, int width, Color& color, float alpha)
-	{
-		glEnable(GL_BLEND);
-		x1+=gui_winx;
-		y1+=gui_winy;
-		x2+=gui_winx;
-		y2+=gui_winy;
-		glColor4f(color.r, color.g, color.b, alpha);
-		glLineWidth((float)width);
-		glBegin(GL_LINES);
-		glVertex3i(x1, y1, 0);
-		glVertex3i(x2, y2, 0);
-		glEnd();
-		glLineWidth(1.0f);
-	};
-
+	
 	void DrawBarAlpha(int x, int y, int w, int h, Color& color, float alpha)
 	{
-		glEnable(GL_BLEND);
 		x+=gui_winx;
 		y+=gui_winy;
 		glColor4f(color.r, color.g, color.b, alpha);
@@ -1636,7 +1456,6 @@ public:
 
 	void DrawKnob(int x, int y, float value, int rec)
 	{
-		glEnable(GL_BLEND);
 		glColor4f(1.0f, 1.0f, 1.0f, 0.4f);
 		DrawSprite(knobshadow, x, y+11);
 		float angle=PI*1.25f-value*PI*1.5f;
@@ -1663,13 +1482,12 @@ public:
 		DrawSprite(knobdot, x, y);
 		glLoadIdentity();
 	};
-
-	void DrawLED(int x, int y, int colid, float intensity)
+	
+	void DrawLED(int x, int y, int colid, bool lit)
 	{
-		glEnable(GL_BLEND);
 		Color color;
 		color=palette[colid+11];
-		if(intensity==0.0f)
+		if(!lit)
 		{
 			if(colid==2)
 				glColor4f(color.r*1.0f, color.g*1.0f, color.b*1.0f, 1.0f);
@@ -1684,36 +1502,25 @@ public:
 			glColor4f(color.r, color.g, color.b, 1.0f);
 			DrawSprite(led[1], x-5, y-3);
 			glBlendFunc(GL_ONE, GL_ONE);
-			color.r*=intensity;
-			color.g*=intensity;
-			color.b*=intensity;
 			if(colid==2)
 				glColor4f(color.r*1.0f, color.g*1.0f, color.b*1.0f, 1.0f);
 			else
 				glColor4f(color.r*0.5f, color.g*0.5f, color.b*0.5f, 1.0f);
 			DrawSprite(led[2], x-5, y-3);
 			if(colid==2)
-				glColor4f(0.9f*intensity, 0.9f*intensity, 0.9f*intensity, 1.0f);
+				glColor4f(0.9f, 0.9f, 0.9f, 1.0f);
 			else
-				glColor4f(0.4f*intensity, 0.4f*intensity, 0.4f*intensity, 1.0f);
+				glColor4f(0.4f, 0.4f, 0.4f, 1.0f);
 			DrawSprite(led[3], x-5, y-3);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		}
-	};
-
-	void DrawLED(int x, int y, int colid, bool lit)
-	{
-		if(lit)
-			DrawLED(x, y, colid, 1.0f);
-		else
-			DrawLED(x, y, colid, 0.0f);
 	};
 
 	bool SelectFileSave(char *filename, int type)
 	{
 		glkitShowMouse(true);
 		bool chosen=false;
-		chosen=FileSelectorSave(glkitGetHwnd(), filename, type);
+		chosen=FileSelectorSave(glkitGetScreen(), filename, type);
 		glkitShowMouse(false);
 		return chosen;
 	};
@@ -1722,16 +1529,7 @@ public:
 	{
 		glkitShowMouse(true);
 		bool chosen=false;
-		chosen=FileSelectorLoad(glkitGetHwnd(), filename, type);
-		glkitShowMouse(false);
-		return chosen;
-	};
-
-	bool SelectFileLoad(char *filename, int type, char* title)
-	{
-		glkitShowMouse(true);
-		bool chosen=false;
-		chosen=FileSelectorLoad(glkitGetHwnd(), filename, type, title);
+		chosen=FileSelectorLoad(glkitGetScreen(), filename, type);
 		glkitShowMouse(false);
 		return chosen;
 	};

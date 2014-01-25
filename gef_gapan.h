@@ -67,10 +67,6 @@ private:
 	StereoBufferP dbuffer;
 
 	gapan_params params;
-	
-	// inertial parameters		
-	float target_fcut;
-	float target_pan;
 
 public:
 	gef_gapan()
@@ -91,10 +87,6 @@ public:
 		params.fres=0.0f;
 		params.fhp=0.0f;
 		GenReverbPts();
-
-		// inertial parameters		
-		target_fcut=params.fcut;
-		target_pan=params.pan;
 		
 		delaybuffer_l=NULL;
 		delaybuffer_r=NULL;
@@ -140,12 +132,6 @@ public:
 	{
 		int debug_iterations=0;
 		bool triggered=buffer->size>0;
-
-		// inertial parameters
-		params.fcut=params.fcut*0.9f+target_fcut*0.1f;
-		if(params.fcut<0.001f) params.fcut=0.0f;
-		params.pan=params.pan*0.9f+target_pan*0.1f;
-		if(fabs(params.pan-0.5f)<0.01f) params.pan=0.5f;
 		
 //		LogPrint("gapan: buffer->size=%i", buffer->size);
 		bool dbout=false;
@@ -402,20 +388,14 @@ public:
 			int rpts[256];
 			float rppw[256];
 			int ifi=(int)(params.reverbfidelity*240+16);
-			// update parameters
-			for(int i=0;i<ifi;i++)
+			for(int i=0;i<256;i++)
 			{
 				rpts[i]=(int)(params.reverbpts[i]*params.reverbdepth*(65536-105))+100;
 				rppw[i]=(0.3f+params.reverbpts[255-i]*0.4f)*exp(-params.reverbpts[i]*3.0f)*200/(ifi+64);
-//				debug_iterations++;
+				debug_iterations++;
 			}
-/*			int orpos[256];
-			for(int d=0;d<ifi;d++)
-			{
-				orpos[d]=delayptr-rpts[d]; // could be negative
-				orpos[d]+=65536;
-				orpos[d]&=65536-1;
-			}*/
+//			if(buffer->size>256)
+//				LogPrint("buffer->size==%i", buffer->size);
 			for(int i=0;i<buffer->size;i++)
 			{
 				float sample_l=0.0f;
@@ -426,71 +406,26 @@ public:
 				psl=buffer->left[i];
 				psr=buffer->right[i];
 
-				if(buffer->mono) // identical channels, compute left only
+				for(int d=0;d<ifi;d++)
 				{
-					for(int d=0;d<ifi;d++)
-					{
-						int rpos=delayptr-rpts[d]; // could be negative...
-						rpos+=65536; // ...so let's keep it positive
-						rpos&=65536-1;
-						sample_l+=delaybuffer_l[rpos]*rppw[d];
-					}
-				}
-				else
-				{
-					for(int d=0;d<ifi;d++)
-					{
-						int rpos=delayptr-rpts[d]; // could be negative...
-						rpos+=65536; // ...so let's keep it positive
-						rpos&=65536-1;
-						sample_l+=delaybuffer_l[rpos]*rppw[d];
-						sample_r+=delaybuffer_r[rpos]*rppw[d];
-					}
-/*					for(int d=0;d<ifi;d++)
-					{
-						int rpos=delayptr-rpts[d];
-						rpos+=65536;
-						rpos&=65536-1;
-						sample_l+=delaybuffer_l[rpos]*rppw[d];
-						sample_r+=delaybuffer_r[rpos]*rppw[d];
-						debug_iterations++;
-					}*/
+					int rpos=delayptr-rpts[d];
+					rpos+=65536;
+					rpos&=65536-1;
+					sample_l+=delaybuffer_l[rpos]*rppw[d];
+					sample_r+=delaybuffer_r[rpos]*rppw[d];
+					debug_iterations++;
 				}
 
 				delayoffset_l+=(sample_l-delayoffset_l)*0.001f;
 				delayoffset_r+=(sample_r-delayoffset_r)*0.001f;
 
 				buffer->left[i]+=sample_l-delayoffset_l;
-				if(!buffer->mono)
-					buffer->right[i]+=sample_r-delayoffset_r;
+				buffer->right[i]+=sample_r-delayoffset_r;
 
 				delayptr++;
 				delayptr&=65536-1;
-//				debug_iterations++;
+				debug_iterations++;
 			}
-
-			if(buffer->mono) // identical channels, copy results
-			{
-				float *bp=buffer->right;
-				float *sp=buffer->left;
-				for(int i=0;i<buffer->size;i+=8)
-				{
-					(*bp++)=*sp++;
-					(*bp++)=*sp++;
-					(*bp++)=*sp++;
-					(*bp++)=*sp++;
-					(*bp++)=*sp++;
-					(*bp++)=*sp++;
-					(*bp++)=*sp++;
-					(*bp++)=*sp++;
-//						debug_iterations++;
-				}
-			}
-			
-/*			for(int i=0;i<32;i++)
-			{
-				int p=reverbpts[i];
-			}*/
 		}
 
 		float span=params.pan;
@@ -533,8 +468,7 @@ public:
 		dui->DrawText(23, 4, dui->palette[6], "gain");
 		dui->DoKnob(5, 2, params.gain, -1, "knob_gain", "final gain");
 		dui->DrawText(43, 17, dui->palette[6], "pan");
-//		dui->DoKnob(25, 12, params.pan, -1, "knob_pan", "stereo position");
-		dui->DoKnob(25, 12, target_pan, -1, "knob_pan", "stereo position");
+		dui->DoKnob(25, 12, params.pan, -1, "knob_pan", "peter");
 
 		dui->DrawBar(66, 1, 1, 29, dui->palette[6]);
 		dui->DrawBar(67, 1, 1, 28, dui->palette[7]);
@@ -546,8 +480,7 @@ public:
 		dui->DrawText(110, 3, dui->palette[6], "HP");
 		dui->DoKnob(92, 2, params.fhp, -1, "knob_fhp", "high pass filter frequency (applied before low pass)");
 		dui->DrawText(125, 19, dui->palette[6], "LP");
-//		dui->DoKnob(107, 12, params.fcut, -1, "knob_fco", "low pass filter frequency");
-		dui->DoKnob(107, 12, target_fcut, -1, "knob_fco", "low pass filter frequency");
+		dui->DoKnob(107, 12, params.fcut, -1, "knob_fco", "low pass filter frequency");
 
 		dui->DrawBar(139, 1, 1, 29, dui->palette[6]);
 		dui->DrawBar(140, 1, 1, 28, dui->palette[7]);
@@ -629,9 +562,6 @@ public:
 			}
 			kfread(&params, 1, sizeof(gapan_params), file);
 		}
-		// inertial parameters
-		target_fcut=params.fcut;
-		target_pan=params.pan;
 		return true;
 	};
 };

@@ -9,8 +9,11 @@
 #ifndef __TIMER_H
 #define __TIMER_H
 
-#include <windows.h>
+//#include <windows.h>
+#include <SDL/SDL.h>
 
+// Not sure if SDL_GetTicks is quite accurate enough,
+// but it's better than nothing.
 
 class CTimer
 {
@@ -23,8 +26,9 @@ private:
 
 		bool init()
 		{
+                        frequency = 1000; // millisecond accuracy
 			// retreive frequency of the timer in ticks per second
-			if (!QueryPerformanceFrequency(&frequency))
+			/*if (!QueryPerformanceFrequency(&frequency))
 			{
 				return false;	// hi-res timer not supported
 			}
@@ -34,7 +38,8 @@ private:
 				// current value of the timer in startTime
 				QueryPerformanceCounter(&startTime);
 				return true;
-			}
+			}*/
+                        startTime = SDL_GetTicks();
 
 			Reset();
 		}
@@ -42,24 +47,26 @@ private:
 		// returns number of seconds since it was last called 
 		float GetElapsedSeconds(int index)
 		{
-			LARGE_INTEGER currentTime;
+			Uint32 currentTime;
 
 			// get the current value of the timer 
-			QueryPerformanceCounter(&currentTime);
+			//QueryPerformanceCounter(&currentTime);
+                        currentTime = SDL_GetTicks();
 
 			// (current time - last time) gives the number of ticks that have ellapsed
 			// divide that by the timer's frequence and we get time in milliseconds 
-			float seconds = ((float)currentTime.QuadPart - (float)startTime.QuadPart) / (float)frequency.QuadPart;
+			float seconds = ((float)currentTime - (float)startTime) / (float)frequency;
 
 			return seconds-mark[index];
 		}
 
 		void SetMark(int index)
 		{
-			LARGE_INTEGER currentTime;
+			Uint32 currentTime;
 
-			QueryPerformanceCounter(&currentTime);
-			float seconds = ((float)currentTime.QuadPart - (float)startTime.QuadPart) / (float)frequency.QuadPart;
+			//QueryPerformanceCounter(&currentTime);
+                        currentTime = SDL_GetTicks();
+			float seconds = ((float)currentTime - (float)startTime) / (float)frequency;
 
 			mark[index]=seconds;
 		}
@@ -68,7 +75,8 @@ private:
 		{
 			int i;
 
-			QueryPerformanceCounter(&startTime);
+			//QueryPerformanceCounter(&startTime);
+                        startTime = SDL_GetTicks();
 
 			for(i=0;i<20;i++)
 				mark[i]=0;
@@ -76,12 +84,12 @@ private:
 
 		float GetFPS(unsigned long elapsedFrames = 1)
 		{
-			static LARGE_INTEGER lastTime = startTime;
-			LARGE_INTEGER currentTime;
+			static Uint32 lastTime = startTime;
+			Uint32 currentTime;
+                        currentTime = SDL_GetTicks();
+			//QueryPerformanceCounter(&currentTime);
 
-			QueryPerformanceCounter(&currentTime);
-
-			float fps = (float)elapsedFrames * (float)frequency.QuadPart / ((float)currentTime.QuadPart - (float)lastTime.QuadPart);
+			float fps = (float)elapsedFrames * (float)frequency / ((float)currentTime - (float)lastTime);
 
 			// reset the timer
 			lastTime = currentTime;
@@ -90,8 +98,8 @@ private:
 		}
 	
 	private:
-		LARGE_INTEGER startTime;
-		LARGE_INTEGER frequency;
+		Uint32 startTime;
+		Uint32 frequency;
 };
 
 #endif // __TIMER_H

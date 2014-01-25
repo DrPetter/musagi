@@ -1,12 +1,13 @@
 #ifndef FILESELECTOR_H
 #define FILESELECTOR_H
 
-#include <windows.h>
+#include <SDL/SDL.h>
 
 void FileSelectorInit();
-bool FileSelectorSave(HWND hwnd, char *filename, int type);
-bool FileSelectorLoad(HWND hwnd, char *filename, int type);
-bool FileSelectorLoad(HWND hwnd, char *filename, int type, char* title);
+
+bool FileSelectorSave(SDL_Surface *screen, char *filename, int type);
+
+bool FileSelectorLoad(SDL_Surface *screen, char *filename, int type);
 
 #endif
 

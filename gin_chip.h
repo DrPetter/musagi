@@ -167,13 +167,6 @@ public:
 	int fltout;
 	bool dead;
 
-	// auto-arpeggio (from polyphony on mono instrument)
-	int numarpnotes;
-	int autoarp[8];
-	int autoarp_delay;
-
-	bool mono_released;
-
 	chip_channel()
 	{
 		params=NULL;
@@ -181,18 +174,12 @@ public:
 		tick=0;
 		volume=0.0f;
 		irval=0;
-
-		fy=0.0f;
-		fdy=0.0f;
-		dslide=0.0f;
-		vibphase=0.0f;
 		
 		for(int i=0;i<1;i++)
 		{
 			channels[i].playing=false;
 			channels[i].duty=0.5f;
 			channels[i].pft=0.0f;
-			channels[i].ft=0.0f;
 			channels[i].iwlen=170;
 		}
 
@@ -204,13 +191,6 @@ public:
 			scale[24-i]=factor;
 			scale[24+i]=1.0f/factor;
 		}
-		
-		numarpnotes=0;
-		for(int i=0;i<8;i++)
-			autoarp[i]=-1;
-		autoarp_delay=0;
-
-		mono_released=true;
 	};
 
 	~chip_channel()
@@ -312,8 +292,6 @@ public:
 //		int iptperiod=(int)(pow(1.1f-params->speed, 2.0f)*44100.0f);
 		int iptperiod=(int)(pow(0.9f-params->speed*0.65f, 3.0f)*22050.0f);
 		float vibspeed=pow(params->vibrato_speed+0.2f, 2.0f)*0.003f;
-		if(params->vibrato_speed==0.0f)
-			vibspeed=0.0f;
 		float vibdep=pow(params->vibrato_depth, 3.0f);
 
 		for(int si=0;si<size;si++)
@@ -332,10 +310,6 @@ public:
 			float dutenv[7];
 			if(numslide>0)
 				numslide--;
-
-			if(numarpnotes>0)
-				autoarp_delay++; // time passed since trigger, only arpeggiate on near-simultaneous notes
-
 			if(dead || params->vol[0]==0.0f)
 			{
 				fltout++;
@@ -380,47 +354,27 @@ public:
 			if(ptrig)
 			{
 				channels[0].patpos++;
-				if(numarpnotes>1) // auto-arpeggio
+				if(channels[0].patpos>params->pattern[0].end)
 				{
-					if(channels[0].patpos>=numarpnotes)
-					{
-						if(params->loop)
-							channels[0].patpos=0; // loop
-						else
-							channels[0].patpos--; // hold at the end position
-					}
-					if(!channels[0].playing)
-						channels[0].t=0.0f; // reset phase if we're coming from silence
-					if(channels[0].patpos>=0)
-					{
-						channels[0].playing=true;
-						channels[0].period=44100.0f/GetNoteFrequency(autoarp[channels[0].patpos]);
-					}
+					if(params->loop)
+						channels[0].patpos=0; // loop
+					else
+						channels[0].patpos--; // hold at the end position
+				}
+				if(!channels[0].playing)
+					channels[0].t=0.0f; // reset phase if we're coming from silence
+				int offset=params->pattern[0].offset[channels[0].patpos];
+				if(offset==999)
+				{
+					if(channels[0].playing)
+						channels[0].duestop=true;
 				}
 				else
 				{
-					if(channels[0].patpos>params->pattern[0].end)
-					{
-						if(params->loop)
-							channels[0].patpos=0; // loop
-						else
-							channels[0].patpos--; // hold at the end position
-					}
-					if(!channels[0].playing)
-						channels[0].t=0.0f; // reset phase if we're coming from silence
-					int offset=params->pattern[0].offset[channels[0].patpos];
-					if(offset==999)
-					{
-						if(channels[0].playing)
-							channels[0].duestop=true;
-					}
-					else
-					{
-						channels[0].playing=true;
-						channels[0].period=channels[0].noteperiod*scale[offset+24];
-					}
-					params->pattern[0].pos=channels[0].patpos;
+					channels[0].playing=true;
+					channels[0].period=channels[0].noteperiod*scale[offset+24];
 				}
+				params->pattern[0].pos=channels[0].patpos;
 			}
 
 			// envelope
@@ -526,11 +480,11 @@ public:
 			{
 //				fdy+=(sample-(fy+fdy*6))*(float)channels[0].iwlen*0.5f/channels[0].period;
 //				fdy+=(sample-(fy+fdy*6))*50/channels[0].period;
-				if(fy>2.0f) fy=2.0f; // ?
-				if(fy<-2.0f) fy=-2.0f; // ?
 				fdy+=(sample-(fy+fdy*3))*0.05f;
-				if(fdy>0.5f) fy=0.5f;
-				if(fdy<-0.5f) fdy=-0.5f;
+				if(fdy>0.5f)
+					fy=0.5f;
+				if(fdy<-0.5f)
+					fdy=-0.5f;
 				fy+=fdy;
 				sample=fy;
 			}
@@ -556,18 +510,14 @@ public:
 		active=true;
 		volume=tvolume;
 
-		double ptarget=44100.0/GetNoteFrequency(tnote);
-		if(params->vibrato_speed==0.0f)
-			ptarget*=1.0f-pow(params->vibrato_depth, 2.0f)*0.5f;
-
 		int nch=0;
 		for(nch=0;nch<1;nch++)
 			if(params->vol[nch]>0.0f)
 				break;
-		if(params->mono && params->nslide>0.01f && nch<4 && channels[nch].noteperiod>0.0f && !mono_released)
+		if(params->mono && params->nslide>0.01f && nch<4 && channels[nch].noteperiod>0.0f)
 		{
 			numslide=(int)(params->nslide*20000.0f);
-			dslide=1.0+log(ptarget/channels[nch].noteperiod)/(double)numslide;
+			dslide=1.0+log(44100.0/GetNoteFrequency(tnote)/channels[nch].noteperiod)/(double)numslide;
 			numslide+=1;
 		}
 		else
@@ -579,15 +529,12 @@ public:
 		for(int i=0;i<1;i++)
 		{
 			if(numslide==0)
-				channels[i].noteperiod=ptarget;
+				channels[i].noteperiod=44100.0f/GetNoteFrequency(tnote);
 			if(numslide==0 || channels[i].decay)
 			{
-				if(channels[i].decay) // don't reset wave phase if we're interrupting a previous note (basically hack to allow smooth slide transitions)
-				{
-					channels[i].t=0.0f;
-					channels[i].ft=0.0f;
-					channels[i].pft=0.0f;
-				}
+				channels[i].t=0.0f;
+				channels[i].ft=0.0f;
+				channels[i].pft=0.0f;
 				channels[i].st=0;
 				channels[i].envpos=0.0f;
 				channels[i].denvpos=0.0f;
@@ -606,44 +553,12 @@ public:
 		pt=100000;
 		tick=0;
 		dead=false;
-
-		if(params->mono)
-		{
-			if(autoarp_delay<100) // build auto-arpeggio
-			{
-				autoarp[numarpnotes]=tnote;
-				numarpnotes++;
-				for(int i=1;i<numarpnotes;i++) // sort notes in ascending order
-					if(autoarp[i]<autoarp[i-1])
-					{
-						int t=autoarp[i];
-						autoarp[i]=autoarp[i-1];
-						autoarp[i-1]=t;
-						i=0;
-					}
-			}
-			else // new trigger while playing auto-arpeggio - kill arpeggio
-			{
-				numarpnotes=0;
-				autoarp_delay=0;
-
-				autoarp[numarpnotes]=tnote;
-				numarpnotes++;
-			}
-		}
-
-		mono_released=false;
 	};
 	
 	void Release()
 	{
 		for(int i=0;i<1;i++)
 			channels[i].decay=true;
-
-		numarpnotes=0;
-		autoarp_delay=0;
-
-		mono_released=true; // disallow autoslide on next trigger
 	};
 
 	void Slide(int tnote, int length)
@@ -818,7 +733,6 @@ public:
 			dui->DoKnob(230, 1, params.vibrato_depth, -1, "knob_vd", "vibrato depth");
 			dui->DrawText(230+16, 5+16, dui->palette[6], "vs");
 			dui->DoKnob(230, 1+16, params.vibrato_speed, -1, "knob_vs", "vibrato speed");
-			dui->DrawLED(223, 5+7, 1, params.vibrato_speed==0.0f);
 
 			dui->DrawText(305+16, 5+16, dui->palette[6], "attack");
 			dui->DoKnob(305, 1+16, params.envspd_attack, -1, "knob_ats", "envelope attack speed");
@@ -954,7 +868,7 @@ public:
 							envline_x1=mx;
 							envline_y1=my;
 						}
-						if(!dui->shift_down && !dui->ctrl_down && dui->lmbdown) // draw
+						if(!dui->shift_down && dui->lmbdown) // draw
 						{
 							int x1=pmx;
 							int x2=mx;
@@ -1024,20 +938,9 @@ public:
 							if(x<0 || x>=170)
 								continue;
 							float f=(float)(x-x1)/(x2-x1);
-							params.envelope[params.mode-5][x+eoffset]=y1*(1.0f-f)+y2*f;
-							if(params.mode==7)
-							{
-								params.envelope[params.mode-5][x+eoffset]=params.envelope[params.mode-5][x+eoffset]*2.0f-1.0f;
-								if(params.envelope[params.mode-5][x+eoffset]>1.0f) params.envelope[params.mode-5][x+eoffset]=1.0f;
-								if(params.envelope[params.mode-5][x+eoffset]<-1.0f) params.envelope[params.mode-5][x+eoffset]=-1.0f;
-							}
-							else
-							{
-								if(params.envelope[params.mode-5][x+eoffset]>1.0f) params.envelope[params.mode-5][x+eoffset]=1.0f;
-								if(params.envelope[params.mode-5][x+eoffset]<0.0f) params.envelope[params.mode-5][x+eoffset]=0.0f;
-							}
-//							if(params.envelope[params.mode-5][x+eoffset]>1.0f) params.envelope[params.mode-5][x+eoffset]=1.0f;
-//							if(params.envelope[params.mode-5][x+eoffset]<0.0f) params.envelope[params.mode-5][x+eoffset]=0.0f;
+							params.envelope[params.mode-5][x]=y1*(1.0f-f)+y2*f;
+							if(params.envelope[params.mode-5][x]>1.0f) params.envelope[params.mode-5][x]=1.0f;
+							if(params.envelope[params.mode-5][x]<0.0f) params.envelope[params.mode-5][x]=0.0f;
 						}
 						envline_active=false;
 					}

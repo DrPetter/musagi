@@ -1,8 +1,7 @@
 #ifndef Texture_h
 #define Texture_h
 
-#include <windows.h>
-#include <gl/gl.h>
+#include <GL/gl.h>
 #include <stdio.h>
 
 // Parameters for "mode"
@@ -25,7 +24,7 @@ public:
 	~Texture();
 
 	bool LoadTGA(const char *filename, unsigned char mode); // mode: bitmask (0=normal)
-	void CreateFromData(BYTE *data, int width, int height, unsigned char mode);
+	void CreateFromData(unsigned char *data, int width, int height, unsigned char mode);
 	GLuint getHandle();
 };
 

@@ -1,0 +1,8 @@
+window: 0 0 950 650 1
+log: 0
+mididevice: 0
+tooltips: 1
+scrollfollow: 1
+metronome: 0.50
+keyboard octave: 2
+midi octave: 1

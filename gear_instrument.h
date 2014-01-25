@@ -17,8 +17,6 @@ public:
 
 	bool active;
 	int note;
-	
-	bool tonal;
 
 	gear_ichannel()
 	{
@@ -27,7 +25,6 @@ public:
 		queued_release=false;
 		queued_slide=false;
 		age=0;
-		tonal=true;
 	};
 
 	~gear_ichannel()
@@ -54,7 +51,7 @@ public:
 			
 		if(queued_release)
 		{
-			release_delay-=size*1600/GetTempo();
+			release_delay-=size*16/GetTempo();
 			if(release_delay<=0)
 			{
 				CRelease();
@@ -64,10 +61,10 @@ public:
 
 		if(queued_slide)
 		{
-			slide_delay-=size*1600/GetTempo();
+			slide_delay-=size*16/GetTempo();
 			if(slide_delay<=0)
 			{
-				Slide(slide_target, slide_length*GetTempo()/1600);
+				Slide(slide_target, slide_length*GetTempo()/16);
 				queued_slide=false;
 			}
 		}
@@ -77,13 +74,6 @@ public:
 
 	void CTrigger(int tnote, float tvolume, int tduration, int tslidenote, int tslidelength)
 	{
-		if(tonal)
-		{
-			if(note!=-1)
-				EarRelease(note);
-			EarTrigger(tnote);
-		}
-
 //		LogPrint("channel [%.8X]: trigger", this);
 //		LogPrint("channel: triggered");
 
@@ -112,9 +102,6 @@ public:
 	
 	void CRelease()
 	{
-		if(tonal)
-			EarRelease(note);
-
 		note=-1;
 		Release();
 	};
@@ -131,27 +118,19 @@ public:
 class gear_instrument
 {
 protected:
+	StereoBufferP buffer;
 	
 	gear_ichannel *channels[64];
 	int numchannels;
 	
 	char name[64];
+	char visname[64];
 	bool atomic;
-	bool midi;
 
 	int inst_id;
 	int gid;
 
 public:
-	float gui_hue; // purely visual
-	bool dragging_icolor; // for above
-	bool satisfied;
-	int override;
-	char visname[64];
-	gear_instrument* triggerlink;
-
-	StereoBufferP buffer;
-
 	gear_instrument()
 	{
 //		LogPrint("gear_instrument: init");
@@ -170,18 +149,11 @@ public:
 		name[0]='\0';
 		visname[0]='\0';
 		atomic=false;
-		midi=false;
-		satisfied=true;
-		override=0;
-		triggerlink=NULL;
 		inst_id=0;
 		gid=0;
-
-		gui_hue=0.6f;
-		dragging_icolor=false;
 	};
 
-	virtual ~gear_instrument()
+	~gear_instrument()
 	{
 		if(buffer.left)
 			free(buffer.left);
@@ -216,11 +188,6 @@ public:
 	{
 		return atomic;
 	};
-	
-	bool Midi()
-	{
-		return midi;
-	};
 
 	void ManageBuffer(int size) // allocate new buffer if size doesn't match
 	{
@@ -238,8 +205,6 @@ public:
 
 	StereoBufferP RenderBuffer(int size)
 	{
-		satisfied=true; // by default, all instruments produce output on the first pass (exception: modifier instruments)
-
 //		LogPrint("gear_instrument: RenderBuffer()");
 		ManageBuffer(size);
 
@@ -309,18 +274,8 @@ public:
 		Trigger(tnote, tvolume, tduration, -1, -1);
 	};
 	
-	void Trigger(int tnote, float tvolume, int tduration, int tslidenote, int tslidelength)
+	void Trigger(int tnote, float tvolume, int tduration, int tslidenote, int tslidelength) // start playing given note (negative duration is undetermined/infinite)
 	{
-		Trigger(tnote, tvolume, tduration, tslidenote, tslidelength, false);
-	};
-	
-	void Trigger(int tnote, float tvolume, int tduration, int tslidenote, int tslidelength, bool linked) // start playing given note (negative duration is undetermined/infinite)
-	{
-		if(triggerlink!=NULL && !linked)
-			triggerlink->Trigger(tnote, tvolume, tduration, tslidenote, tslidelength, override>0);
-
-//		LogPrint("%X has triggerlink %X");
-
 		int maxage=0;
 		int oldest=0;
 		for(int i=0;i<numchannels;i++)
@@ -329,9 +284,8 @@ public:
 			{
 //				LogPrint("instrument: trigger channel %i", i);
 //				LogPrint("instrument [%.8X]: trigger channel %i", this, i);
-				//channels[i]->CTrigger(tnote, tvolume, tduration, tslidenote, tslidelength);
-				oldest=i;
-				break;
+				channels[i]->CTrigger(tnote, tvolume, tduration, tslidenote, tslidelength);
+				return;
 			}
 			else if(channels[i]->age>maxage)
 			{
@@ -344,16 +298,8 @@ public:
 		channels[oldest]->CTrigger(tnote, tvolume, tduration, tslidenote, tslidelength);
 	};
 	
-	void Release(int rnote)
+	void Release(int rnote) // release given note
 	{
-		Release(rnote, false);
-	};
-
-	void Release(int rnote, bool linked) // release given note
-	{
-		if(triggerlink!=NULL && !linked)
-			triggerlink->Release(rnote, override>0);
-
 		for(int i=0;i<numchannels;i++)
 			if(channels[i]->note==rnote)
 				channels[i]->CRelease();
@@ -361,43 +307,18 @@ public:
 	
 	void ReleaseAll() // release any playing notes
 	{
-		ReleaseAll(false, false);
-	};
-
-	void ReleaseAll(bool external)
-	{
-		ReleaseAll(external, false);
-	};
-
-	void ReleaseAll(bool external, bool linked) // release any playing notes
-	{
-		EarClear();
-
-		if(triggerlink!=NULL && !linked)
-			triggerlink->ReleaseAll(true, override>0);
-		
 		for(int i=0;i<numchannels;i++)
-		{
-			if(!external && channels[i]->note!=-1)
+			if(channels[i]->note!=-1)
 				channels[i]->CRelease();
-			else if(external)
-			{
-				if(channels[i]->tonal)
-					EarRelease(channels[i]->note);
-
-				channels[i]->Release();
-			}
-		}
 	};
 
-	virtual void StopChannels() // abruptly stop all channels from playing
+	void StopChannels() // abruptly stop all channels from playing (as long as they are culling on !active... but they should be ;))
 	{
-		ReleaseAll(); // for instruments that don't care about active status and have no direct control over audio (midi, vst)
 		for(int i=0;i<numchannels;i++)
 			channels[i]->active=false;
 	};
 	
-	virtual bool IsTriggered()
+	bool IsTriggered()
 	{
 		for(int i=0;i<numchannels;i++)
 			if(channels[i]->active)

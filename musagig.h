@@ -2,7 +2,8 @@
 #define musagig_h
 
 #include <math.h>
-#include "hsv.h"
+
+#include "AudioStream.h"
 
 void ZeroBuffer(float *buffer, int size)
 {
@@ -132,15 +133,13 @@ char note_string[120][4];
 int notepos[120];
 bool gkbkeydown[120];
 int tempo;
-int g_beatlength;
 class AudioStream;
-int load_fileversion=-1;
 //AudioStream *gaudiostream;
 
 int partcopy_numtriggers=0;
 Trigger partcopy_triggers[1024];
 
-#include "Part.h"
+#include "part.h"
 
 Part *current_part;
 
@@ -187,7 +186,7 @@ void SetKeyDown(int i, bool state)
 	gkbkeydown[i]=state;
 }
 
-#include "Part.h"
+#include "part.h"
 //class Part;
 
 void SetCurrentPart(void *part)
@@ -224,76 +223,6 @@ int GetTempo()
 	return tempo;
 }
 
-int GetBeatLength()
-{
-	return g_beatlength;
-}
-
-void SetBeatLength(int i)
-{
-	g_beatlength=i;
-}
-
-Color ColorFromHSV(float hue, float sat, float val)
-{
-	Color fcol;
-	DWORD icol=hsv_to_rgb((int)(hue*255), (int)(sat*255), (int)(val*255));
-	fcol.r=(float)((icol>>16)&0xFF)/255;
-	fcol.g=(float)((icol>>8)&0xFF)/255;
-	fcol.b=(float)(icol&0xFF)/255;
-	return fcol;
-}
-
-char dirstrings[10][512];
-
-char* GetCurDir(int type)
-{
-	return dirstrings[type];
-}
-
-void SetCurDir(int type, char* string)
-{
-	int slen=strlen(string);
-	int end=slen;
-	for(end=slen-1;end>0;end--)
-		if(string[end]=='\\')
-			break;
-	strcpy(dirstrings[type], string);
-	dirstrings[type][end]='\0';
-}
-
-char musagidir[512];
-
-char* GetMusagiDir()
-{
-	return musagidir;
-}
-
-void SetMusagiDir(char* path)
-{
-	strcpy(musagidir, path);
-}
-
-int GetFileVersion()
-{
-	return load_fileversion;
-}
-
-void SetFileVersion(int version)
-{
-	load_fileversion=version;
-}
-/*
-void gm_keydown(int note)
-{
-	Keyboard_KeyDown(note);
-}
-
-void gm_keydown(int note)
-{
-	Keyboard_KeyUp(note);
-}
-*/
 void InitGlobals()
 {
 	// Init notes
@@ -366,148 +295,9 @@ void InitGlobals()
 
 	for(int i=0;i<120;i++)
 		gkbkeydown[i]=false;
-
-	g_beatlength=4;
-		
-//	tempo=44;
-
-	EarClear();
-};
-
-void AbortRender()
-{
-	LogPrint("AbortRender()");
-	abort_render=true;
-};
-
-void FinishRender()
-{
-	LogPrint("FinishRender()");
-	glDisable(GL_BLEND);
-	glFlush();
-//	SwapBuffers(hDC);
-};
-
-StereoBufferP* waveinbuffer=NULL;
-
-void SetWaveInBuffer(StereoBufferP* buffer)
-{
-	waveinbuffer=buffer;
-}
-
-StereoBufferP* GetWaveInBuffer()
-{
-	return waveinbuffer;
-}
-
-int ear_notes[12];
-int ear_notememory[12];
-int ear_stale=0;
-int ear_level=0;
-
-void EarTrigger(int note)
-{
-	if(note<0)
-		return;
-	ear_notes[note%12]++;
-	ear_notememory[note%12]=20;
-	ear_stale=0;
-}
-
-void EarRelease(int note)
-{
-	if(note<0)
-		return;
-	ear_notes[note%12]--;
-	if(ear_notes[note%12]<0)
-		ear_notes[note%12]=0;
-	ear_stale=0;
-}
-
-void EarClear()
-{
-	for(int i=0;i<12;i++)
-	{
-		ear_notes[i]=0;
-		ear_notememory[i]=0;
-	}
-	ear_stale=0;
-}
-
-void EarUpdate()
-{
-	ear_level--;
-
-	int level=0;
-	for(int i=0;i<12;i++)
-		if(ear_notememory[i]>0)
-			ear_notememory[i]--;
-	for(int i=0;i<12;i++)
-	{
-		if(ear_notes[i]==0 || ear_notememory[i]>0)
-			continue;
-		for(int j=0;j<12;j++)
-		{
-			if(ear_notes[(i+j)%12]==0 || ear_notememory[(i+j)%12]>0)
-				continue;
-			switch(j)
-			{
-				case 0:
-				case 3:
-				case 4:
-				case 5:
-				case 7:
-				case 8:
-				case 9:
-					break;
-				default:
-					level+=50;
-					break;
-			}
-		}
-	}
-	// avoid getting stuck in dissonance due to missed releases
-	if(level>0)
-	{
-		ear_stale++;
-		if(ear_stale>4*400)
-			EarClear();
-	}
-	else
-		ear_stale=0;
 	
-	if(level>ear_level)
-		ear_level=level;
-}
-
-int EarLevel()
-{
-	return ear_level/50;
-}
-
-void fft_convert(double *data, double *fft_buffer, int n, int direction) // direction  1=t->f  -1=f->t
-{
-	static int fft_ip[NMAXSQRT+2];
-	static double fft_w[NMAX*5/4];
-
-	if(direction==1)
-		for(int i=0;i<n;i++)
-		{
-			fft_buffer[i*2+0]=data[i];
-			fft_buffer[i*2+1]=0.0;
-		}
-
-	cdft(n*2, direction, fft_buffer, fft_ip, fft_w);
-
-	if(direction==-1)
-	{
-		double scale=2.0f/(n*2);
-		for(int i=0;i<n;i++)
-			data[i]=fft_buffer[i*2]*scale;
-	}
-}
-
-#include "midi_io.h"
+//	tempo=44;
+};
 
 #endif
 

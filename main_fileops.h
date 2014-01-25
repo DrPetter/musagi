@@ -1,13 +1,15 @@
+#include <SDL/SDL.h>
+
 bool SaveSong(char *filename)
 {
 	LogPrint("main: save song");
-	int gtime=timeGetTime();
+	int gtime=SDL_GetTicks();//timeGetTime();
 
 	FILE *file=kfopen(filename, "wb");
 	if(file==NULL)
 		return false;
 	char vstring[6];
-	strcpy(vstring, "SMU05");
+	strcpy(vstring, "SMU04");
 	kfwrite2(vstring, 5, 1, file);
 	// header
 	kfwrite(&ftempo, 1, sizeof(float), file);
@@ -25,7 +27,6 @@ bool SaveSong(char *filename)
 			kfwrite2(&i, 1, sizeof(int), file);
 			kfwrite2(&gearstacks[i], 1, sizeof(GearStack), file);
 			gearstacks[i].instrument->Save(file);
-			kfwrite2(&gearstacks[i].instrument->gui_hue, 1, sizeof(float), file);
 			kfwrite2(&gearstacks[i].num_effects, 1, sizeof(int), file);
 			for(int j=0;j<gearstacks[i].num_effects;j++)
 				gearstacks[i].effects[j]->Save(file);
@@ -63,8 +64,8 @@ bool SaveSong(char *filename)
 	LogPrint("main: filesize=%i", ftell(file));
 	kfclose(file);
 
-	LogPrint("main: save took %i ms", timeGetTime()-gtime);
-
+	LogPrint("main: save took %i ms", SDL_GetTicks()-gtime);//timeGetTime()-gtime);
+	
 	return true;
 }
 
@@ -73,7 +74,7 @@ bool LoadInstrument(GearStack *gs, FILE *file, bool songload)
 	char gsname[64];
 	kfread2(gsname, 1, 64, file);
 	gsname[63]='\0'; // in case the string is garbage
-	LogPrint("main: loading instrument \"%s\"", gsname);
+//	LogPrint("main: loading instrument \"%s\"", gsname);
 	gear_instrument *instrument=NULL;
 	if(strcmp(gsname, "xnes")==0)
 		instrument=new gin_xnes();
@@ -83,29 +84,16 @@ bool LoadInstrument(GearStack *gs, FILE *file, bool songload)
 		instrument=new gin_protobass();
 	if(strcmp(gsname, "swave")==0)
 		instrument=new gin_swave();
-	if(strcmp(gsname, "vsmp")==0)
-		instrument=new gin_vsmp();
-	if(strcmp(gsname, "midinst")==0)
-		instrument=new gin_midinst();
-	if(strcmp(gsname, "midperc")==0)
-		instrument=new gin_midperc();
-	#ifdef VST_PLUGIN_SDK
-	if(strcmp(gsname, "VSTi")==0)
-		instrument=new gin_vsti();
-	#endif
-	if(strcmp(gsname, "operator")==0)
-		instrument=new gin_operator();
-	if(strcmp(gsname, "wavein")==0)
-		instrument=new gin_wavein();
-	LogPrint("main: identified (or not)");
+	if(strcmp(gsname, "vsampler")==0)
+		instrument=new gin_vsampler();
 	if(instrument==NULL) // unknown instrument
 	{
-		LogPrint("main: unknown");
 		if(songload && errorcount<5)
 		{
 			char string[128];
 			sprintf(string, "Unknown instrument \"%s\" skipped", gsname);
-			MessageBox(hWndMain, string, "Warning", MB_ICONEXCLAMATION);
+			//MessageBox(hWndMain, string, "Warning", MB_ICONEXCLAMATION);
+                        printf("%s\n",string);
 			errorcount++;
 		}
 		else
@@ -119,17 +107,18 @@ bool LoadInstrument(GearStack *gs, FILE *file, bool songload)
 	}
 	else
 	{
-		LogPrint("main: delete old instrument");
+//		LogPrint("main: delete old instrument");
 		delete gs->instrument;
-		LogPrint("main: reassign instrument");
+//		LogPrint("main: reassign instrument");
 		gs->instrument=instrument;
-		LogPrint("main: load instrument");
+//		LogPrint("main: load instrument");
 		bool success=gs->instrument->Load(file);
 		if(!success && errorcount<5)
 		{
 			char string[128];
 			sprintf(string, "Unable to load instrument \"%s\" - unsupported version?", gsname);
-			MessageBox(hWndMain, string, "Warning", MB_ICONEXCLAMATION);
+			//MessageBox(hWndMain, string, "Warning", MB_ICONEXCLAMATION);
+                        printf("%s\n", string);
 			errorcount++;
 		}
 		return success;
@@ -150,7 +139,8 @@ bool LoadEffect(GearStack *gs, int index, FILE *file, bool songload, int fversio
 		{
 			char string[128];
 			sprintf(string, "Unknown effect \"%s\" skipped", gsname);
-			MessageBox(hWndMain, string, "Warning", MB_ICONEXCLAMATION);
+			//MessageBox(hWndMain, string, "Warning", MB_ICONEXCLAMATION);
+                        printf("%s\n", string);
 			errorcount++;
 		}
 		else
@@ -171,7 +161,8 @@ bool LoadEffect(GearStack *gs, int index, FILE *file, bool songload, int fversio
 		{
 			char string[128];
 			sprintf(string, "Unable to load effect \"%s\" - unsupported version?", gsname);
-			MessageBox(hWndMain, string, "Warning", MB_ICONEXCLAMATION);
+			//MessageBox(hWndMain, string, "Warning", MB_ICONEXCLAMATION);
+                        printf("%s\n", string);
 			errorcount++;
 		}
 		return success;
@@ -182,7 +173,9 @@ bool LoadSong(char *filename)
 {
 	errorcount=0;
 	LogPrint("main: load song");
-	int gtime=timeGetTime();
+	int gtime=SDL_GetTicks();//timeGetTime();
+
+        printf("Song filename: %s\n", filename);
 
 	FILE *file=kfopen(filename, "rb");
 	if(file==NULL)
@@ -200,14 +193,11 @@ bool LoadSong(char *filename)
 		fversion=2;
 	if(strcmp(vstring, "SMU04")==0)
 		fversion=3;
-	if(strcmp(vstring, "SMU05")==0)
-		fversion=4;
 	if(fversion==-1) // incompatible file format
 	{
 		fclose(file);
 		return false;
 	}
-	SetFileVersion(fversion); // communicate file version to any other loading code
 	// clear all data
 	audiostream->Flush();
 	for(int i=0;i<maxstacks;i++)
@@ -228,11 +218,10 @@ bool LoadSong(char *filename)
 
 	// header
 	kfread(&ftempo, 1, sizeof(float), file);
-	if(fversion<4)
-		ftempo*=3445.0f/3500.0f; // compensate for slightly different tempo formula
-	UpdateTempo();
+//	tempo=24+(int)((1.0f-ftempo)*40);
+	tempo=20+(int)(pow(1.0f-ftempo, 2.0f)*60);
 	kfread(&master_volume, 1, sizeof(float), file);
-
+	
 	// ?
 	// load gearstacks
 	int numstacks=0;
@@ -253,8 +242,6 @@ bool LoadSong(char *filename)
 //			gearstacks[index].instrument=new gin_xnes(); // if instrument load failed, replace it with xnes (hmmm, dubious practice?)
 		}
 		LogPrint("main: loaded instrument [%.8X]", gearstacks[index].instrument);
-		if(fversion>=4)
-			kfread2(&gearstacks[index].instrument->gui_hue, 1, sizeof(float), file);
 		LogPrint("main: loading effects");
 		gearstacks[index].num_effects=0;
 		kfread2(&gearstacks[index].num_effects, 1, sizeof(int), file);
@@ -274,7 +261,6 @@ bool LoadSong(char *filename)
 	for(int i=0;i<stacklistnum;i++)
 		kfread2(&stacklist[i], 1, sizeof(int), file);
 	// load parts
-	current_part=NULL;
 	int numparts=0;
 	kfread2(&numparts, 1, sizeof(int), file);
 	LogPrint("main: numparts=%i", numparts);
@@ -301,144 +287,15 @@ bool LoadSong(char *filename)
 			audiostream->AddGearStack(&gearstacks[i]);
 		}
 
-	LogPrint("main: load took %i ms", timeGetTime()-gtime);
-
+	LogPrint("main: load took %i ms", SDL_GetTicks()-gtime);//timeGetTime()-gtime);
+	
 	if(errorcount>=5)
-		MessageBox(hWndMain, "Too many errors. If you want more details - quit the program, enable logging in config.txt, reload the song, then read log.txt", "Warning", MB_ICONEXCLAMATION);
+		//MessageBox(hWndMain, "Too many errors. If you want more details - quit the program, enable logging in config.txt, reload the song, then read log.txt", "Warning", MB_ICONEXCLAMATION);
+                printf("Too many errors. If you want more details - quit the program, enable logging in config.txt, reload the song, then read log.txt\n");
 	errorcount=0;
-
+	
 	glkit_resized=true; // to allow snapped windows to adjust
-
-	return true;
-}
-
-bool ExportMID(char *filename)
-{
-	LogPrint("main: export midi");
-
-	FILE *file=fopen(filename, "wb");
-	if(file==NULL)
-		return false;
-
-	midi_outfile=file;
-
-	// write header
-	// start song playback, causing midi triggers to be written
-	// poll for thesong->playing==false
-	// write footer (if any)
-	// done
-
-	// -- header chunk
-
-	// id string
-	char hstring[5]="MThd";
-	fwrite(hstring, 4, 1, file);
-	// size
-	unsigned char byte;
-	byte=0;
-	fwrite(&byte, 1, 1, file);
-	fwrite(&byte, 1, 1, file);
-	fwrite(&byte, 1, 1, file);
-	byte=6;
-	fwrite(&byte, 1, 1, file);
-	// format
-	byte=0;
-	fwrite(&byte, 1, 1, file);
-	fwrite(&byte, 1, 1, file);
-	// numtracks
-	byte=0;
-	fwrite(&byte, 1, 1, file);
-	byte=1;
-	fwrite(&byte, 1, 1, file);
-	// time division (one tick per millisecond)
-/*	byte=0xE7;
-	fwrite(&byte, 1, 1, file);
-	byte=0x28;
-	fwrite(&byte, 1, 1, file);*/
-
-	// 4/4, 75 bpm, 50 tpqn (if 16 qn per beat)
-	byte=0x00;
-	fwrite(&byte, 1, 1, file);
-	byte=50;
-	fwrite(&byte, 1, 1, file);
-
-	// -- track chunk
-
-	// id string
-	char tstring[5]="MTrk";
-	fwrite(tstring, 4, 1, file);
-	// size (unknown for now, will be filled in later)
-	byte=0;
-	int sizepos=ftell(file);
-	fwrite(&byte, 1, 1, file);
-	fwrite(&byte, 1, 1, file);
-	fwrite(&byte, 1, 1, file);
-	fwrite(&byte, 1, 1, file);
-
-	// tempo
-	byte=0x00;
-	fwrite(&byte, 1, 1, file);
-	byte=0xFF;
-	fwrite(&byte, 1, 1, file);
-	byte=0x51;
-	fwrite(&byte, 1, 1, file);
-	byte=0x03;
-	fwrite(&byte, 1, 1, file);
-	byte=0x00;
-	fwrite(&byte, 1, 1, file);
-	byte=0xC3;
-	fwrite(&byte, 1, 1, file);
-	byte=0x50;
-	fwrite(&byte, 1, 1, file);
-
-	// start playback and wait for it to finish
-	bool loopsetting=thesong->loop;
-	thesong->loop=false;
-	midi_datasize=0;
-	midi_stime=0;
-	midi_firstevent=true;
-	midi_exporting=true;
-	// free midi channels to enforce program changes at the start of the song
-	for(int i=0;i<16;i++)
-		midi_freechannel(i);
-	thesong->PlayButton();
-	if(!thesong->playing)
-		thesong->PlayButton();
-	while(thesong->playing)
-	{
-		Sleep(50);
-	}
-	thesong->loop=loopsetting;
-	midi_exporting=false;
-
-	// end of track event
-	byte=0x00;
-	fwrite(&byte, 1, 1, file);
-	midi_datasize++;
-	byte=0xFF;
-	fwrite(&byte, 1, 1, file);
-	midi_datasize++;
-	byte=0x2F;
-	fwrite(&byte, 1, 1, file);
-	midi_datasize++;
-	byte=0x00;
-	fwrite(&byte, 1, 1, file);
-	midi_datasize++;
-
-	// seek back to track data size bytes and fill them in
-	fseek(file, sizepos, SEEK_SET);
-	byte=(midi_datasize>>24)&0xFF;
-	fwrite(&byte, 1, 1, file);
-	byte=(midi_datasize>>16)&0xFF;
-	fwrite(&byte, 1, 1, file);
-	byte=(midi_datasize>>8)&0xFF;
-	fwrite(&byte, 1, 1, file);
-	byte=(midi_datasize)&0xFF;
-	fwrite(&byte, 1, 1, file);
-
-//	LogPrint("midi track data size: %i [%.8X]", midi_datasize, midi_datasize);
-
-	fclose(file);
+	
 	return true;
 }
 

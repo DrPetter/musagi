@@ -123,8 +123,6 @@ public:
 	int autoarp[8];
 	int autoarp_delay;
 
-	bool mono_released;
-
 	xnes_channel()
 	{
 		params=NULL;
@@ -166,8 +164,6 @@ public:
 		for(int i=0;i<8;i++)
 			autoarp[i]=-1;
 		autoarp_delay=0;
-
-		mono_released=true;
 	};
 
 	~xnes_channel()
@@ -240,11 +236,6 @@ public:
 
 	int RenderBuffer(StereoBufferP *buffer, int size)
 	{
-		if(params->vol[3]>0.2f && params->vol[2]<0.5f && params->vol[1]<0.5f && params->vol[0]<0.5f) // only noise, don't treat it as a candidate for dissonance
-			tonal=false;
-		else
-			tonal=true;
-
 		if(!active)
 			return 0; // no output
 			
@@ -257,8 +248,6 @@ public:
 //		int iptperiod=(int)(pow(1.1f-params->speed, 2.0f)*44100.0f);
 		int iptperiod=(int)(pow(0.9f-params->speed*0.65f, 3.0f)*22050.0f);
 		float vibspeed=pow(params->vibrato_speed+0.2f, 2.0f)*0.003f;
-		if(params->vibrato_speed==0.0f)
-			vibspeed=0.0f;
 		float vibdep=pow(params->vibrato_depth, 3.0f);
 
 		for(int si=0;si<size;si++)
@@ -501,19 +490,15 @@ public:
 		
 		active=true;
 		volume=tvolume;
-		
-		double ptarget=44100.0/GetNoteFrequency(tnote);
-		if(params->vibrato_speed==0.0f)
-			ptarget*=1.0f-pow(params->vibrato_depth, 2.0f)*0.5f;
 
 		int nch=0;
 		for(nch=0;nch<4;nch++)
 			if(params->vol[nch]>0.0f)
 				break;
-		if(params->mono && params->nslide>0.01f && nch<4 && channels[nch].noteperiod>0.0f && !mono_released)
+		if(params->mono && params->nslide>0.01f && nch<4 && channels[nch].noteperiod>0.0f)
 		{
 			numslide=(int)(params->nslide*20000.0f);
-			dslide=1.0+log(ptarget/channels[nch].noteperiod)/(double)numslide;
+			dslide=1.0+log(44100.0/GetNoteFrequency(tnote)/channels[nch].noteperiod)/(double)numslide;
 			numslide+=1;
 		}
 		else
@@ -525,7 +510,7 @@ public:
 		for(int i=0;i<4;i++)
 		{
 			if(numslide==0)
-				channels[i].noteperiod=ptarget;
+				channels[i].noteperiod=44100.0f/GetNoteFrequency(tnote);
 			if(numslide==0 || channels[i].decay)
 //			if(!params->mono || channels[i].decay)
 			{
@@ -550,7 +535,7 @@ public:
 
 		if(params->mono)
 		{
-			if(autoarp_delay<100) // build auto-arpeggio
+			if(autoarp_delay<1000) // build auto-arpeggio
 			{
 				autoarp[numarpnotes]=tnote;
 				numarpnotes++;
@@ -564,16 +549,8 @@ public:
 					}
 			}
 			else // new trigger while playing auto-arpeggio - kill arpeggio
-			{
 				numarpnotes=0;
-				autoarp_delay=0;
-
-				autoarp[numarpnotes]=tnote;
-				numarpnotes++;
-			}
 		}
-
-		mono_released=false;
 	};
 	
 	void Release()
@@ -584,18 +561,12 @@ public:
 		
 		numarpnotes=0;
 		autoarp_delay=0;
-
-		mono_released=true; // for autoslide
 	};
 
 	void Slide(int tnote, int length)
 	{
 		if(!active)
 			return;
-
-		double ptarget=44100.0/GetNoteFrequency(tnote);
-		if(params->vibrato_speed==0.0f)
-			ptarget*=1.0f-pow(params->vibrato_depth, 2.0f)*0.5f;
 
 		int nch=0;
 		for(nch=0;nch<4;nch++)
@@ -605,7 +576,7 @@ public:
 			return;
 
 		numslide=length;
-		dslide=1.0+log(ptarget/channels[nch].noteperiod)/(double)numslide;
+		dslide=1.0+log(44100.0/GetNoteFrequency(tnote)/channels[nch].noteperiod)/(double)numslide;
 		numslide+=1;
 	};
 };
@@ -800,8 +771,7 @@ public:
 			dui->DrawText(230+16, 5, dui->palette[6], "vd");
 			dui->DoKnob(230, 1, params.vibrato_depth, -1, "knob_vd", "vibrato depth");
 			dui->DrawText(230+16, 5+16, dui->palette[6], "vs");
-			dui->DoKnob(230, 1+16, params.vibrato_speed, -1, "knob_vs", "vibrato speed (zero = detune)");
-			dui->DrawLED(223, 5+7, 1, params.vibrato_speed==0.0f);
+			dui->DoKnob(230, 1+16, params.vibrato_speed, -1, "knob_vs", "vibrato speed");
 
 			dui->DrawText(305+16, 5+16, dui->palette[6], "attack");
 			dui->DoKnob(305, 1+16, params.envspd_attack, -1, "knob_ats", "envelope attack speed");

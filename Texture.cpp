@@ -1,10 +1,12 @@
-#include <windows.h>
-#include <gl\gl.h>
-#include <gl\glu.h>
+//#include <windows.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
 #include "Texture.h"
 
 //#include "VectorMath.h"
-#include <gl\glext.h>
+#include <GL/glext.h>
+
+#include <malloc.h>
 
 Texture::Texture()
 {
@@ -18,10 +20,8 @@ Texture::~Texture()
 
 bool Texture::LoadTGA(const char *filename, unsigned char mode) // Load TGA texture
 {
-//	int oh=handle;
-
-//	GLuint texture;
-	BYTE * data;
+	GLuint texture;
+	unsigned char * data;
 	FILE *file;
 	unsigned char byte, id_length/*, chan[4]*/;
 //	int n, width, height, channels, x, y;
@@ -95,10 +95,9 @@ bool Texture::LoadTGA(const char *filename, unsigned char mode) // Load TGA text
 	fclose( file );
 	glEnable(GL_TEXTURE_2D);
 	// allocate a texture name
-	if(handle==0)
-		glGenTextures( 1, &handle );
+	glGenTextures( 1, &texture );
 	// select our current texture
-	glBindTexture( GL_TEXTURE_2D, handle );
+	glBindTexture( GL_TEXTURE_2D, texture );
 	// select modulate to mix texture with color for shading
 	glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 
@@ -147,18 +146,19 @@ bool Texture::LoadTGA(const char *filename, unsigned char mode) // Load TGA text
 
 	free( data );
 
-//	handle=texture;
+	handle=texture;
 
 	return true;
 }
 
-void Texture::CreateFromData(BYTE *data, int width, int height, unsigned char mode)
+void Texture::CreateFromData(unsigned char *data, int width, int height, unsigned char mode)
 {
+	GLuint texture;
+
 	// allocate a texture name
-	if(handle==0)
-		glGenTextures( 1, &handle );
+	glGenTextures( 1, &texture );
 	// select our current texture
-	glBindTexture( GL_TEXTURE_2D, handle );
+	glBindTexture( GL_TEXTURE_2D, texture );
 	// select modulate to mix texture with color for shading
 	glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 
@@ -191,6 +191,8 @@ void Texture::CreateFromData(BYTE *data, int width, int height, unsigned char mo
 //	if(channels==4)
 	gluBuild2DMipmaps( GL_TEXTURE_2D, 4, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data );
 //	glTexImage2D(somethingsomething?);
+
+	handle=texture;
 }
 
 GLuint Texture::getHandle() {return handle;}

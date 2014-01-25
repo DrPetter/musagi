@@ -1,8 +1,9 @@
 #include "Log.h"
 
+#include <string.h>
+
 bool commonlib_logactive;
 char logfilename[512];
-bool log_mutex=false;
 
 void LogStart(char *filename)
 {
@@ -19,9 +20,6 @@ void LogPrint(char *string, ...)
 	if(!commonlib_logactive)
 		return;
 		
-	while(log_mutex) { Sleep(0); }
-	log_mutex=true;
-
 	FILE *file;
 	char temp[1024];
 	va_list args;
@@ -33,8 +31,6 @@ void LogPrint(char *string, ...)
 	file=fopen(logfilename, "a");
 	fprintf(file,"%s\n", temp);
 	fclose(file);
-
-	log_mutex=false;
 }
 
 void LogPrintf(char *string, ...)
@@ -42,9 +38,6 @@ void LogPrintf(char *string, ...)
 	if(!commonlib_logactive)
 		return;
 		
-	while(log_mutex) { Sleep(0); }
-	log_mutex=true;
-
 	FILE *file;
 	char temp[1024];
 	va_list args;
@@ -56,8 +49,6 @@ void LogPrintf(char *string, ...)
 	file=fopen(logfilename, "a");
 	fprintf(file,"%s", temp);
 	fclose(file);
-
-	log_mutex=false;
 }
 
 void LogEnable()

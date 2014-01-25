@@ -42,8 +42,6 @@ public:
 		ft=0.0f;
 		pft=0.0f;
 		waveid=0;
-		
-		tonal=false;
 	};
 
 	~swave_channel()
@@ -52,25 +50,12 @@ public:
 
 	float WaveformSample(float t1, float t2, float *wave, int length)
 	{
+//		if(t2<t1) // wrapped
+//			t2+=1.0f;
 		t1*=length;
 		t2*=length;
-
-		if(t1>length-1.0f) t1=length-1.0f;
-		if(t2>length-1.0f) t2=length-1.0f;
-
-		if(t2-t1<1.0f) // we're playing at less than the original speed, filter accordingly
-		{
-			int i1=(int)(t1-0.5f);
-			int i2=i1+1;
-			if(i2>length-1) i2=length-1;
-			float f=t1-(float)i1;
-			return wave[i1]*(1.0f-f)+wave[i2]*f;
-		}
-
 		int i1=(int)(t1-0.5f);
 		int i2=(int)(t2-0.5f);
-		i2=i1;
-//		if(i2>length-1) i2=length-1; // bounds check
 		if(i1==i2) // both sample points on same wave sample
 			return wave[i1];
 		float fi1=(float)i1;
@@ -82,9 +67,15 @@ public:
 		for(int i=i1+1;i<i2;i++) // add all intermediate whole sample values
 		{
 			int wi=i;
+//			if(wi>=length)
+//				wi-=length;
 			ws+=wave[wi];
 			wsamples++;
 		}
+//		if(i2>=length)
+//			i2-=length;
+//		i1+=256-length;
+//		i2+=256-length;
 		if(wsamples>0)
 			return (ws+wave[i1]*p1+wave[i2]*p2)/((float)wsamples+p1+p2);
 		else
@@ -98,11 +89,8 @@ public:
 
 		float vol=params->vol[waveid]*2.0f; // *2.0f to compensate for high peaks generally bringing down overall volume
 		float spd=0.2f+pow(params->spd[waveid]*2.0f, 2.0f)*0.8f;
-		if(fabs(spd-1.0f)<0.03f) // snap to original speed
-		{
-			spd=1.0f;
-			ft=-1.0f;
-		}
+//		if(fabs(params->spd[waveid]-0.5f)<0.05f)
+//			spd=1.0f;
 		int isize=params->size[waveid];
 		float fsize=(float)isize;
 
@@ -114,42 +102,25 @@ public:
 
 		params->played[waveid]=0;		
 		float *wave=params->wavedata[waveid];
-		float finalvol=vol*volume;
 
-		// optimized paths
-		if(spd==1.0f) // fastest, just plain data copy and volume scaling
+		for(int si=0;si<size;si++)
 		{
-			int ipos=(int)t;
-			int numsamples=(isize-1)-ipos;
-			if(numsamples>size) // don't go beyond requested buffersize
-				numsamples=size;
-			else
-				active=false; // will render the last sample within this buffer
-			for(int si=0;si<numsamples;si++)
-				buffer->left[si]+=wave[ipos++]*finalvol;
-			tick+=numsamples;
-			t=(float)ipos;
-		}
-		else // time scaling
-		{
-			if(ft==-1.0f)
-				ft=t/fsize;
-			int numsamples=(isize-1)-(int)t;
-			if(numsamples>size) // don't go beyond requested buffersize
-				numsamples=size;
-			else
-				active=false; // will render the last sample within this buffer
-			float stepsize=spd/fsize;
-			for(int si=0;si<numsamples;si++)
+			t+=spd;
+			if(t>=fsize)
 			{
-//				t+=spd;
-				pft=ft;
-				ft+=stepsize;
-//				ft=t/fsize; // this could be removed with a precalced step size and adjustment of t after the loop
-				buffer->left[si]+=WaveformSample(pft, ft, wave, isize)*finalvol;
+				active=false;
+				break;
 			}
-			t+=spd*numsamples;
-			tick+=numsamples;
+			pft=ft;
+			ft=t/fsize;
+
+			float sample=0.0f;
+
+//			sample+=(float)(rnd(16)-8)/8*vol;
+			sample+=WaveformSample(pft, ft, wave, isize)*vol;
+
+			buffer->left[si]+=sample*volume;
+			tick++;
 		}
 
 		return 1; // produced mono output (left channel)
@@ -167,7 +138,7 @@ public:
 		waveid=tnote%12;
 		params->played[waveid]=0;		
 		
-//		LogPrint("swave: triggering wave %i (%.8X, size=%i)", waveid, params->wavedata[waveid], params->size[waveid]);
+		LogPrint("swave: triggering wave %i (%.8X, size=%i)", waveid, params->wavedata[waveid], params->size[waveid]);
 
 		tick=0;
 	};
@@ -394,15 +365,8 @@ public:
 			dui->DrawText(26+x, 26, dui->palette[6], "%i", i+1);
 			sprintf(string, "knob_vol%i", i);
 			dui->DoKnob(10+x, 2, params.vol[i], -1, string, "volume");
-			dui->DrawLED(3+x, 2, 1, params.size[i]>0);
-			dui->DrawLED(3+x, 10, 0, params.played[i]<5);
-			// kind of nasty to have the same calc here as in render()... but I don't want to change the parameter struct
-			bool originalspeed=false;
-			float spd=0.2f+pow(params.spd[i]*2.0f, 2.0f)*0.8f;
-			if(fabs(spd-1.0f)<0.02f) // snap to original speed
-				originalspeed=true;
-			dui->DrawLED(3+x, 18, 0, !originalspeed);
-			//
+			dui->DrawLED(5+x, 2, 1, params.size[i]>0);
+			dui->DrawLED(5+x, 14, 0, params.played[i]<5);
 			params.played[i]++;
 			sprintf(string, "knob_spd%i", i);
 			dui->DoKnob(10+x, 18, params.spd[i], -1, string, "playback speed (up is original speed)");
@@ -425,25 +389,6 @@ public:
 				}
 			}
 		}
-
-/*		// Poll joystick for button triggers
-		for(int si=0;si<12;si++)
-		{
-			if(dui->joyclick[si])
-			{
-				Trigger(si, 1.0f);
-//				LogPrint("swave: joybutton trigger %i!", si);
-//				for(int i=0;i<numchannels;i++)
-//				{
-//					if(!((swave_channel*)channels[i])->active)
-//					{
-//						channels[i]->Trigger(si, 1.0f);
-//						LogPrint("swave: triggering channel %i", i);
-//						break;
-//					}
-//				}
-			}
-		}*/
 	};
 
 	bool Save(FILE *file)

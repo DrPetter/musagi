@@ -19,7 +19,7 @@ public:
 		inst_id=0;
 	};
 
-	virtual ~gear_effect()
+	~gear_effect()
 	{
 	};
 

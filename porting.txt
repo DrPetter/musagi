@@ -1,0 +1,59 @@
+---- Musagi portability project ----
+
+   May 1, 2007
+
+drpetter@gmail.com
+------------------
+
+External libs/systems required: Portaudio, OpenGL, mouse/keyboard input, window handling, file requester, (timer), (midi)
+
+
+Let's assume glfw will be suitable as a basic system library. The first goal would be to have a portable version of musagi with working mouse and keyjazz input as well as graphics and audio output. No need to worry about window resizing at first, nor character input for string editing etc.
+Second goal would be to add char input and a file requester to get pretty much the full functionality of the application. After that we get to the little things like window resize, midi input, timer, audio latency improvement and so on.
+
+The first goal mentioned above should be readily achievable using glfw without any major headaches, since glfw provides window setup and input code for mouse and keyboard. Getting full character input might be tough, but the few keys used by keyjazz should be easy to implement (look in main.cpp for the calls and rewrite the constants from e.g. DIK_A to 'A' for use in glfwGetKey()).
+
+
+File-specific notes
+-------------------
+In order of importance, roughly. By far the most work is in rewriting glkit.h to use glfw instead of Windows code. The rest should be a breeze, relatively speaking (at least the most critical parts, not counting file selector and midi).
+Some files might have scope issues with for(int i...) and expecting the variable to be accessible outside the loop/block - that should yield a compiler error though and would be very easy to fix. Other similar issues like missing trivial #defines are also to be expected.
+
+File                - Description
+----                  -----------
+
+glkit.h             - Based on NeHe's OpenGL code iirc, very Windows-specific of course
+TODO: Replace with glfw setup, not sure how to handle window resizing etc, but mouse events should be pretty easy to relay in the same way they work now (well, they might not be read in the same way, but the appropriate variables should be filled with the same info - i.e. coordinates, button press/release and mouse wheel state).
+Basically the functions and the struct defined in glkit_global.h must work the same way they do now, as that's what the application will interface. On top of that are the global variables prefixed with glkit_ and defined at the top of glkit.h, which are used to get information on what happens to the application window.
+Best approach is probably to keep the old file for reference but start fresh with a simple glfw window setup and work from there, adding the stuff needed to handle the variables and functions mentioned above.
+
+DPInput.h/.cpp      - I removed all Windows-specific code, empty shell remains
+TODO: Insert keyboard code. This would basically just be a call to glfwGetKey() in DPInput.KeyPressed() I suppose.
+
+dui.h               - Interface class, handles the IMGUI stuff and interface rendering, as well as relaying input
+TODO: Uses DPInput directly, which means some DIK_ constants that might need translating, nothing big.
+
+part.cpp            - MessageBox():es
+TODO: Just replace the MessageBox calls with something appropriate. One sensible approach is to add messagebox display to the dui class and handle them internally using OpenGL. That's probably the way to go (and therefore my responsibility).
+
+main.cpp            - Lots of "system"/random code and high-level interface calls
+TODO: Shouldn't need tweaking other than DIK_ contants and MessageBox():es, and a Sleep().
+
+fileselector.h/.cpp - Popup windows for saving and loading files, Pretty critical for real functionality.
+TODO: Rewrite, there's probably some library for it. An alternative would be to write a custom one using OpenGL (again) together with some portable way of iterating through the file system. Relatively heavy work in that case.
+
+timer.h             - High-resolution timer for cpu usage meter. Not critical but nice to have.
+TODO: Rewrite, should be fairly easy.
+
+midi_io.h           - What the file name says. Non-critical.
+TODO: Rewrite when the critical stuff is done.
+
+
+Contributor tasks
+-----------------
+
+Pick something above that sounds inviting. Try to fix it or do some research to get more details on feasibility/alternatives. Report back with any results, including changed files and a description of changes (more or less detailed, as appropriate).
+If you have an old version of this file you better get in touch first to see if some things have already been handled.
+
+There's a limit to what I can comfortably do with this, as I don't have any other OS install than Windows at the moment and my main concern is with getting the Windows version smooth and bug-free.
+

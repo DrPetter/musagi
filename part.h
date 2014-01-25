@@ -28,9 +28,6 @@ private:
 	int scrollsize;
 	
 	int edit_curtrigger;
-	bool songplay;
-	
-	int playing_note; // for graphical piano keyboard
 	
 public:
 	int gindex;
@@ -49,8 +46,6 @@ public:
 	bool popup;
 	bool wasactive;
 	bool wantrelease;
-
-	bool pasting;
 	
 	int winx;
 	int winy;
@@ -77,14 +72,12 @@ public:
 	bool vlooped;
 	int vloopcounter;
 
-	int starttime;
-	bool placing_start;
-
 	Part(int index)
 	{
+                int i;
 		gindex=index;
 		
-		maxtriggers=2048;
+		maxtriggers=1024;
 		triggers=(Trigger*)malloc(maxtriggers*sizeof(Trigger));
 		numtriggers=0;
 		curtrigger=0;
@@ -96,10 +89,6 @@ public:
 		placing_loop=false;
 		vlooped=false;
 		vloopcounter=0;
-
-		starttime=0;
-		placing_start=false;
-		playing_note=-1;
 		
 		playtime=0;
 		
@@ -131,16 +120,14 @@ public:
 		slide_origin=-1;
 
 		sbox_active=false;
-		
-		pasting=false;
 
 		// generate a random name
-		for(int i=0;i<64;i++)
+		for(i=0;i<64;i++)
 			name[i]=0;
 		char vowels[7]="aoueiy";
 		char consonants[21]="bcdfghjklmnpqrstvwxz";
 		int vowel=rnd(1);
-		for(int i=0;i<6;i++)
+		for(i=0;i<6;i++)
 		{
 			if(vowel)
 				name[i]=vowels[rnd(5)];
@@ -153,8 +140,6 @@ public:
 		name[i]='\0';
 		
 		edit_curtrigger=-1;
-		
-		songplay=false;
 	};
 	~Part()
 	{
@@ -166,81 +151,18 @@ public:
 		hidden=false;
 		popup=true;
 	};
-
-	bool strfit(char* pattern, char* string)
-	{
-		int i=-1;
-		while(pattern[++i]!='\0')
-			if(pattern[i]!=string[i])
-				return false;
-		return true;
-	};
-
-	int FindSuffix(char* string)
-	{
-		// find start of number suffix in given string
-		int slen=strlen(string);
-		for(int i=slen-1;i>=0;i--)
-		{
-			if(string[i]=='_')
-				return i+1;
-			if(string[i]<'0' || string[i]>'9') // only numbers allowed after underscore
-				return slen;
-		}
-		return slen;
-	};
 	
 	void CopyOf(Part *src)
 	{
-		// build name string
-		strcpy(name, src->name);
-		int slen=strlen(name);
-		int inumber=FindSuffix(name);
-
-		char curname[64];
-		strcpy(curname, name);
-		if(inumber!=slen)
-			curname[inumber-1]='\0';
-
-		int highest=1; // default highest index
-
-		// scan all parts in the song to find the one with the highest "name_number" for the current name
-		int maxparts=0;
-		Part** allparts=(Part**)GetAllParts(maxparts);
-		for(int i=0;i<maxparts;i++)
-			if(allparts[i]!=NULL)
-			{
-				Part* part=allparts[i];
-				int pslen=strlen(part->name);
-				if(!strfit(curname, part->name)) // this part has a different name
-					continue;
-				int pinumber=FindSuffix(part->name);
-				if(pinumber==pslen) // no suffix here
-					continue;
-				int pvalue=0;
-				char number[16];
-				for(int i=pinumber;i<=pslen;i++)
-					number[i-pinumber]=part->name[i];
-				sscanf(number, "%i", &pvalue);
-				if(pvalue>highest)
-					highest=pvalue;
-			}
-
-		if(inumber==slen)
-			name[inumber++]='_'; // no suffix, prepare to add one
-		highest++;
-		name[inumber]='\0';
-		char svalue[16];
-		sprintf(svalue, "%i", highest);
-		strcat(name, svalue);
-		// name string done
+		char temp[64];
+		strcpy(temp, src->name);
+		sprintf(name, "%s%.3i", temp, rnd(999));
 
 		gearstack=src->gearstack;
 		gearid=src->gearid;
 
 //		loops=src->loops;
 		looptime=src->looptime;
-		starttime=src->starttime;
 
 		numtriggers=src->numtriggers;
 		for(int i=0;i<numtriggers;i++)
@@ -348,26 +270,12 @@ public:
 
 	int FindTrigger(int dtime, int note)
 	{
-		if(note<0) // means we want one of potentially several notes at this dtime
-		{
-			int hiti=0;
-			for(int i=0;i<numtriggers;i++)
-				if(dtime>=triggers[i].start && dtime<=triggers[i].start+1000)
-				{
-					hiti++;
-					if(hiti==-note) // we've skipped to the desired matching note
-						return i;
-				}
-			return -1;
-		}
 		// return index of trigger matching given parameters
 		for(int i=0;i<numtriggers;i++)
 			if(note==triggers[i].note && dtime>=triggers[i].start && dtime<=triggers[i].start+triggers[i].duration)
 				return i;
 		return -1; // no hit
 	};
-
-	void PlayButton(void *audiostream);
 	
 	void Rewind(int numloops)
 	{
@@ -377,11 +285,6 @@ public:
 		curtrigger=0;
 		playing=true;
 		playtime=0;
-		
-		if(numloops==99999) // started from part window
-			songplay=false;
-		else
-			songplay=true;
 	};
 	
 	void Stop()
@@ -393,18 +296,14 @@ public:
 
 	Trigger* GetTrigger(int dtime)
 	{
-		int stime=starttime;
-		if(songplay)
-			stime=0;
-
 //		LogPrint("part: dtime=%.1f (%.1f)", dtime, triggers[curtrigger].start);
 		if(playing)
 		{
-			if(dtime+stime>=(looptime-stime)*vloopcounter && looptime>0)
+			if(dtime>=looptime*vloopcounter && looptime>0)
 //			if(dtime>=looptime*loopcounter && looptime>0)
 				vlooped=true; // bleh, just to hint the gui so that the play indicator can jump back
 
-			if(curtrigger<numtriggers && numtriggers>0 && dtime+stime>=triggers[curtrigger].start+(looptime-stime)*loopcounter)
+			if(curtrigger<numtriggers && numtriggers>0 && dtime>=triggers[curtrigger].start+looptime*loopcounter)
 			{
 	//			LogPrint("part: trigger!");
 				int irtrigger=curtrigger;
@@ -417,10 +316,6 @@ public:
 						loopsleft--;
 						loopcounter++;
 						curtrigger=0;
-						if(stime>0)
-							while(GetTrigger((looptime-stime)*loopcounter-1)) // skip past all triggers before the first one
-							{
-							}
 					}
 //					playtime-=looptime;
 				}

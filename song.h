@@ -70,21 +70,6 @@ public:
 	int iscrolly;
 	int scrollsize;
 	int scrollfollow;
-	bool spacescroll;
-	
-	bool showsong;
-	
-	int selected_instrument;
-
-	int ghostpart_mode;
-	int ghostpart_width;
-//	int* ghostpart_width;
-//	int* ghostpart_parti;
-//	int ghostpart_num;
-	
-	bool selectbox;
-	int selectbox_x1;
-	int selectbox_y1;
 	
 public:
 	Song()
@@ -103,13 +88,6 @@ public:
 		iscrolly=0;
 		scrollsize=0;
 		scrollfollow=1;
-		spacescroll=false;
-
-		showsong=true;
-		selected_instrument=-1;
-		selectbox=false;
-		
-		ghostpart_mode=0;
 		
 		playfrom=0;
 		loop=false;
@@ -160,11 +138,6 @@ public:
 			Play(playfrom);
 		else
 			Stop();
-	};
-
-	void SelectInstrument(int i)
-	{
-		selected_instrument=i;
 	};
 
 	bool KnobAtMemPos(float *pos)
@@ -226,7 +199,8 @@ public:
 	void KnobRecToggle(float *value)
 	{
 		int firstempty=-1;
-		for(int i=0;i<numknobs;i++)
+                int i;
+		for(i=0;i<numknobs;i++)
 		{
 			if(firstempty==-1 && knobrecs[i].value==NULL)
 				firstempty=i;
@@ -266,17 +240,15 @@ public:
 //			else
 //				parts[i].part->selected=false;
 				parts[i].selected=true;
-//			else
-//				parts[i].selected=false;
+			else
+				parts[i].selected=false;
 		}
-		ghostpart_mode=0;
 	};
 	
 	void DeselectPart()
 	{
 		for(int i=0;i<numparts;i++)
 			parts[i].selected=false;
-		ghostpart_mode=0;
 	};
 
 	Part* GetSelectedPart()
@@ -287,15 +259,6 @@ public:
 				return parts[i].part;
 		return NULL;
 	};
-	
-	int NumSelectedParts()
-	{
-		int num=0;
-		for(int i=0;i<numparts;i++)
-			if(parts[i].selected)
-				num++;
-		return num;
-	}
 
 	char* GetSelectedSid()
 	{
@@ -351,7 +314,6 @@ public:
 //	void RemovePart(Part *part)
 	bool RemovePart(char *sid)
 	{
-		LogPrint("song: trying to remove part \"%s\"", sid);
 /*		if(part==NULL)
 		{
 			LogPrint("CAUTION: tried to remove NULL part");
@@ -362,10 +324,7 @@ public:
 		{
 //			if(parts[i].part==part)
 			if(strcmp(parts[i].sid, sid)==0)
-			{
 				id=i;
-				break;
-			}
 		}
 		if(id==-1) // not found
 		{
@@ -377,25 +336,16 @@ public:
 		for(int i=0;i<numparts;i++)
 			if(parts[i].part==parts[id].part)
 				instances++;
-		LogPrint("song:   part has %i instances", instances);
 		if(instances==1) // there are no clones, so delete the actual part
-		{
 			waslastpart=true;
-			LogPrint("song:   removed the last instance, delete the original part object");
-		}
 		if(instances==2) // after this removal there will only be one instance left of this part
-		{
 			for(int i=0;i<numparts;i++)
 				if(parts[i].part==parts[id].part)
 					parts[i].clone=false;
-			LogPrint("song:   removed the last clone, mark the remaining instance as non-cloned");
-		}
 		// move triggers to the left
-		LogPrint("song: reordering part triggers");
 		for(int j=id;j<numparts-1;j++)
 			parts[j]=parts[j+1];
 		numparts--;
-		LogPrint("song: part removal done");
 		return waslastpart;
 	};
 	
@@ -403,7 +353,7 @@ public:
 	{
 		LogPrint("song: ---- playing from %i", start);
 		playtime=start;
-		playstart=GetTick(0);
+		playstart=GetTick();
 		playindex=0;
 		for(int i=0;i<numparts;i++)
 			parts[i].triggered=false;
@@ -434,7 +384,6 @@ public:
 			else
 				knobrecs[i].curentry=0;
 		}
-		LogPrint("song: play() finished");
 	};
 	
 	void Stop()
@@ -470,7 +419,8 @@ public:
 				// find out how many old entries to remove (overwritten)
 				int numremoved=0;
 				int splicepos=kr->numentries;
-				for(int j=0;j<kr->numentries;j++)
+                                int j;
+				for(j=0;j<kr->numentries;j++)
 				{
 					if(kr->entrytime[j]>=starttime)
 					{
@@ -492,7 +442,8 @@ public:
 				{
 					LogPrint("song: lost some");
 					int spliced=0;
-					for(int j=splicepos;j<kr->numentries+offset;j++)
+                                        int j;
+					for(j=splicepos;j<kr->numentries+offset;j++)
 					{
 						if(spliced<numnew)
 						{
@@ -579,15 +530,13 @@ public:
 			kfwrite2(&parts[i].clone, 1, sizeof(bool), file);
 			kfwrite2(parts[i].sid, 10, sizeof(char), file);
 		}
-		for(int i=0;i<60;i++)
-			kfwrite2(&muted[i], 1, sizeof(bool), file);
 		kfwrite2(&numknobs, 1, sizeof(int), file);
 		for(int i=0;i<numknobs;i++)
 		{
 			kfwrite(&knobrecs[i], 1, sizeof(KnobRecord), file);
 			kfwrite2(knobrecs[i].entrytime, knobrecs[i].numentries, sizeof(int), file);
 			kfwrite2(knobrecs[i].entryvalue, knobrecs[i].numentries, sizeof(float), file);
-//			LogPrint("song: wrote knob %i (%i entries, value=$%.8X)", i, knobrecs[i].numentries, knobrecs[i].value);
+			LogPrint("song: wrote knob %i (%i entries, value=$%.8X)", i, knobrecs[i].numentries, knobrecs[i].value);
 		}
 	};
 
@@ -631,29 +580,12 @@ public:
 //			LogPrint("song: spart start=%i, ypos=%i", parts[i].start, parts[i].ypos);
 		}
 
-		// unmute tracks (should actually load them from the file)
-		for(int i=0;i<60;i++) // why was this 58?
-			muted[i]=false;
-		if(GetFileVersion()>=4) // mute tracks supported
-			for(int i=0;i<60;i++)
-				kfread2(&muted[i], 1, sizeof(bool), file);
-
 		for(int i=0;i<numknobs;i++)
 		{
 //			LogPrint("freeing knobrec %i (%i values)", i, knobrecs[i].numentries);
 			free(knobrecs[i].entrytime);
 			free(knobrecs[i].entryvalue);
 		}
-
-
-
-
-
-
-
-
-
-		// DEBUG - disabled this block due to crash when loading a particular knobrec song, details unknown
 
 		kfread2(&numknobs, 1, sizeof(int), file);
 		for(int i=0;i<numknobs;i++)
@@ -663,25 +595,14 @@ public:
 			knobrecs[i].entryvalue=(float*)realloc(NULL, (knobrecs[i].numentries+4096)*sizeof(float));
 			kfread2(knobrecs[i].entrytime, knobrecs[i].numentries, sizeof(int), file);
 			kfread2(knobrecs[i].entryvalue, knobrecs[i].numentries, sizeof(float), file);
-//			LogPrint("song: read knob %i (%i entries, value=$%.8X)", i, knobrecs[i].numentries, knobrecs[i].value);
+			LogPrint("song: read knob %i (%i entries, value=$%.8X)", i, knobrecs[i].numentries, knobrecs[i].value);
 		}
-//		numknobs=0;
-
-
-
-
-
-
-
-
-
 
 		LogPrint("song: loaded %i sparts", numparts);
 
-		float loadedscrollx=scrollx;
-		scrollsize=0;
+		float oldscrollx=scrollx;
 		AdjustScrollsize();
-		scrollx=loadedscrollx;
+		scrollx=oldscrollx;
 	};
 
 	void AdjustScrollsize()
@@ -712,7 +633,7 @@ public:
 
 	void PlayStep(int dtime, AudioStream *audiostream);
 	
-	void DoInterface(DUI *dui, char* keep_part_selected);
+	void DoInterface(DUI *dui);
 };
 
 #endif
